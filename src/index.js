@@ -7,7 +7,8 @@ const {
   Partials,
   Events,
   REST,
-  Routes
+  Routes,
+  AttachmentBuilder
 } = require('discord.js');
 
 const { loadEnv } = require('./core/env');
@@ -28,6 +29,39 @@ const pngService = require('./services/pngService');
 const { replyError } = require('./ui/responders');
 const { buildOwnerSet } = require('./core/owners');
 const { buildBossSpawnPayload } = require('./ui/bossAnnouncement');
+
+function normalizeText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+async function findOwnedCardByQuery(repos, userId, query) {
+  const needle = normalizeText(query);
+  if (!needle) return null;
+
+  const owned = await repos.getUserCards(userId);
+  if (!owned.length) return null;
+
+  const candidates = await Promise.all(
+    owned.map(async (userCard) => {
+      const card = await repos.getCardByKey(userCard.card_key);
+      if (!card) return null;
+      const keyNorm = normalizeText(card.key);
+      const nameNorm = normalizeText(card.display_name);
+      return { userCard, card, keyNorm, nameNorm };
+    })
+  );
+
+  const valid = candidates.filter(Boolean);
+  const exact = valid.find((x) => x.keyNorm === needle || x.nameNorm === needle);
+  if (exact) return exact;
+
+  const partial = valid.find((x) => x.keyNorm.includes(needle) || x.nameNorm.includes(needle));
+  if (partial) return partial;
+
+  return null;
+}
 
 async function deployCommands(env) {
   const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
@@ -84,13 +118,13 @@ async function main() {
   logInfo('Owner IDs loaded', { ownerIds });
 
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
     partials: [Partials.Channel]
   });
 
   client.once(Events.ClientReady, (readyClient) => {
     logInfo(`SOULFALRES logged in as ${readyClient.user.tag}`);
-    startBossSchedulers({ bossService, client: readyClient, env });
+    startBossSchedulers({ bossService, client: readyClient, env, repos, bossRenderService });
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
@@ -155,6 +189,65 @@ async function main() {
           logWarn('Failed to send error reply', { command: interaction.commandName, error: replyErr.message });
         }
       }
+    }
+  });
+
+  client.on(Events.MessageCreate, async (message) => {
+    if (!message.guild || message.author.bot) return;
+    const raw = String(message.content || '').trim();
+    if (!raw.toLowerCase().startsWith('attack')) return;
+
+    const query = raw.slice('attack'.length).trim();
+    if (!query) {
+      await message.reply('Use: `attack <your card name>`');
+      return;
+    }
+
+    try {
+      const match = await findOwnedCardByQuery(ctx.repos, message.author.id, query);
+      if (!match) {
+        await message.reply(`Card not found in your inventory: \`${query}\``);
+        return;
+      }
+
+      const bosses = await ctx.repos.getVisibleBosses();
+      if (!bosses.length) {
+        await message.reply('No active bosses to attack right now.');
+        return;
+      }
+
+      const chosen = bosses[0];
+      const power = Math.floor(match.card.base_power * (1 + match.userCard.ascension * 0.1) * (1 + match.userCard.card_level * 0.02));
+      const result = await ctx.bossService.attackBoss(message.author.id, chosen.id, power);
+      const bossMeta = await ctx.repos.getBossByKey(result.updated.boss_key);
+
+      try {
+        const battlePng = await ctx.bossRenderService.generateBossFightPng({
+          bossName: bossMeta?.display_name || result.updated.boss_key,
+          bossKey: result.updated.boss_key,
+          anime: bossMeta?.anime || 'global',
+          difficulty: result.updated.difficulty || 'easy',
+          hpCurrent: result.updated.hp_current,
+          hpMax: result.updated.hp_max,
+          attackerTag: message.author.tag,
+          cardName: match.card.display_name,
+          damage: result.damage,
+          defeated: result.defeated,
+          fontFamily: ctx.bossFontFamily || ctx.primaryFontFamily
+        });
+
+        const file = new AttachmentBuilder(battlePng, { name: `boss_fight_${result.updated.id}.png` });
+        await message.reply({
+          content: `**${match.card.display_name}** attacked **${bossMeta?.display_name || result.updated.boss_key}** for **${result.damage}** damage.\nHP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+          files: [file]
+        });
+      } catch {
+        await message.reply(
+          `**${match.card.display_name}** attacked **${bossMeta?.display_name || result.updated.boss_key}** for **${result.damage}** damage.\nHP: **${result.updated.hp_current}/${result.updated.hp_max}**`
+        );
+      }
+    } catch (err) {
+      await message.reply(`SOULFALRES Error: ${err.message || 'attack failed'}`);
     }
   });
 
