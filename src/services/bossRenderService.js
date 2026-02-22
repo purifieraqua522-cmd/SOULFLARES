@@ -9,10 +9,12 @@ function findFirstExisting(paths) {
   return null;
 }
 
-function resolveBossBackground({ anime, difficulty, defeated }) {
+function resolveBossBackground({ anime, bossKey, difficulty, defeated }) {
   const root = path.resolve(process.cwd(), 'assets/backgrounds/boss');
   const suffix = defeated ? '_defeated' : '';
   return findFirstExisting([
+    path.join(root, `${bossKey}_${difficulty}${suffix}.png`),
+    path.join(root, `${bossKey}${suffix}.png`),
     path.join(root, `${anime}_${difficulty}${suffix}.png`),
     path.join(root, `${anime}${suffix}.png`),
     path.join(root, `${difficulty}${suffix}.png`),
@@ -24,10 +26,32 @@ function resolveBossBackground({ anime, difficulty, defeated }) {
   ]);
 }
 
+function resolveBossCharacter({ bossKey, anime }) {
+  const rootCandidates = [
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${bossKey}.png`),
+    path.resolve(process.cwd(), `assets/cards/${anime}/${bossKey}.png`),
+    path.resolve(process.cwd(), `assets/cards/${bossKey}.png`),
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${anime}_${bossKey}.png`)
+  ];
+  return findFirstExisting(rootCandidates);
+}
+
 function difficultyColor(difficulty) {
   if (difficulty === 'nightmare') return '#ff4d6d';
   if (difficulty === 'hard') return '#ff9f1c';
   return '#2ec4b6';
+}
+
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  const radius = Math.max(0, r || 8);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+  ctx.fill();
 }
 
 async function drawBackground(ctx, width, height, backgroundPath) {
@@ -99,34 +123,28 @@ function createBossRenderService() {
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
-      // Background gradient
-      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-      bgGrad.addColorStop(0, '#0f172a');
-      bgGrad.addColorStop(0.5, '#1e293b');
-      bgGrad.addColorStop(1, '#111827');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, width, height);
+      // Background (try per-boss background, fallback to gradient)
+      const backgroundPath = resolveBossBackground({ anime, bossKey, difficulty, defeated: false });
+      await drawBackground(ctx, width, height, backgroundPath);
+      drawOverlay(ctx, width, height);
 
       // Difficulty color
-      const diffColor = difficulty === 'nightmare' ? '#ff4d6d' : difficulty === 'hard' ? '#ff9f1c' : '#2ec4b6';
-      const typeColor = isEvent ? '#f59e0b' : isSuper ? '#ec4899' : '#06b6d4';
+          // Refined color palette
+          const diffColor = difficulty === 'nightmare' ? '#ff6b8a' : difficulty === 'hard' ? '#ffb86b' : '#34d399';
+          const typeColor = isEvent ? '#f97316' : isSuper ? '#e879f9' : '#38bdf8';
 
-      // Top panel - Boss Info
-      const panelGrad = ctx.createLinearGradient(0, 0, width, 220);
-      panelGrad.addColorStop(0, 'rgba(15,23,42,0.95)');
-      panelGrad.addColorStop(1, 'rgba(30,41,59,0.8)');
-      ctx.fillStyle = panelGrad;
-      ctx.fillRect(0, 0, width, 220);
 
+      // Top panel - Boss Info (slim glass bar)
+      drawGlassPanel(ctx, 40, 40, width - 80, 180);
       // Top border accent
       ctx.fillStyle = typeColor;
-      ctx.fillRect(0, 0, width, 4);
+      ctx.fillRect(40, 40, width - 80, 6);
 
       // Boss name
       ctx.fillStyle = '#ffffff';
-      ctx.font = `900 96px ${fontFamily}, sans-serif`;
+      ctx.font = `900 72px ${fontFamily}, sans-serif`;
       ctx.textAlign = 'left';
-      ctx.fillText(bossName, 80, 120);
+      ctx.fillText(bossName, 120, 120);
 
       // Boss key and details
       ctx.fillStyle = '#cbd5e1';
@@ -135,47 +153,41 @@ function createBossRenderService() {
 
       // Anime label (right side)
       ctx.fillStyle = '#94a3b8';
-      ctx.font = `500 28px ${fontFamily}, sans-serif`;
+      ctx.font = `600 22px ${fontFamily}, sans-serif`;
       ctx.textAlign = 'right';
-      ctx.fillText(`Anime: ${String(anime).toUpperCase()}`, width - 80, 100);
+      ctx.fillText(`${String(anime).toUpperCase()}`, width - 120, 90);
+
+      // Type & Difficulty badges (stacked right) with rounded background
+      const badgeX = width - 180;
+      ctx.textAlign = 'center';
 
       // Type badge
-      ctx.fillStyle = typeColor;
-      ctx.font = `700 26px ${fontFamily}, sans-serif`;
       const typeText = isEvent ? 'EVENT' : isSuper ? 'SUPER' : 'NORMAL';
-      ctx.fillText(typeText, width - 80, 155);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      drawRoundedRect(ctx, badgeX - 70, 110, 140, 36, 10);
+      ctx.fillStyle = typeColor;
+      ctx.font = `700 20px ${fontFamily}, sans-serif`;
+      ctx.fillText(typeText, badgeX, 135);
 
-      // Difficulty badge (right side bottom)
+      // Difficulty badge
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      drawRoundedRect(ctx, badgeX - 60, 150, 120, 32, 8);
       ctx.fillStyle = diffColor;
-      ctx.font = `700 32px ${fontFamily}, sans-serif`;
-      ctx.fillText(difficulty.toUpperCase(), width - 80, 195);
+      ctx.font = `700 18px ${fontFamily}, sans-serif`;
+      ctx.fillText(difficulty.toUpperCase(), badgeX, 172);
 
-      // Middle panel - HP and Stats
-      ctx.fillStyle = 'rgba(15,23,42,0.85)';
-      ctx.fillRect(80, 260, 1440, 380);
-      ctx.strokeStyle = 'rgba(148,163,184,0.4)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(80, 260, 1440, 380);
+      // Middle panel - HP and Stats (slightly translucent)
+      drawGlassPanel(ctx, 80, 240, 1440, 400);
 
-      // HP Bar background
-      ctx.fillStyle = 'rgba(15,23,42,0.9)';
-      ctx.fillRect(120, 310, 1360, 60);
-      ctx.strokeStyle = diffColor;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(120, 310, 1360, 60);
 
-      // HP Bar fill
-      const hpGrad = ctx.createLinearGradient(120, 310, 1480, 310);
-      hpGrad.addColorStop(0, diffColor);
-      hpGrad.addColorStop(1, '#22d3ee');
-      ctx.fillStyle = hpGrad;
-      ctx.fillRect(122, 312, 1356, 56);
+      // HP Bar background and fill
+      drawHpBar(ctx, 140, 330, 1320, 56, hpMax, hpMax, diffColor);
 
       // HP text
       ctx.fillStyle = '#ffffff';
-      ctx.font = `700 40px ${fontFamily}, sans-serif`;
+      ctx.font = `700 36px ${fontFamily}, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(`${hpMax.toLocaleString()} HP`, 800, 354);
+      ctx.fillText(`${hpMax.toLocaleString()} HP`, width / 2, 364);
 
       // Stats grid
       const statY = 420;
@@ -217,29 +229,121 @@ function createBossRenderService() {
       ctx.font = `600 28px ${fontFamily}, sans-serif`;
       ctx.fillText(`${participants.length}`, stat3X, statY + 35);
 
-      // Bottom section - Action info
-      ctx.fillStyle = 'rgba(15,23,42,0.8)';
-      ctx.fillRect(80, 680, 1440, 180);
-      ctx.strokeStyle = 'rgba(148,163,184,0.3)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(80, 680, 1440, 180);
 
-      // Instructions
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = `600 32px ${fontFamily}, sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.fillText('⚔️  BOSS SPAWNED!', 120, 730);
+      // NOTE: Removed bottom action panel per request — cleaner HUD above
 
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = `500 26px ${fontFamily}, sans-serif`;
-      ctx.fillText('Use /boss attack to attack this boss', 120, 770);
-      ctx.fillText('Use /boss vote to start a raid with minimum 3 players', 120, 805);
+      // Draw boss character in foreground (right side) if available
+      try {
+        const charPath = resolveBossCharacter({ bossKey, anime });
+        if (charPath) {
+          const img = await loadImage(charPath);
+          // drop shadow
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur = 40;
+          const charW = Math.floor(width * 0.42);
+          const charH = Math.floor(height * 0.9);
+          const charX = width - charW - 60;
+          const charY = height - charH - 40;
+          // maintain aspect ratio
+          const ratio = Math.min(charW / img.width, charH / img.height);
+          const dw = Math.floor(img.width * ratio);
+          const dh = Math.floor(img.height * ratio);
+          ctx.drawImage(img, charX + (charW - dw), charY + (charH - dh), dw, dh);
+          ctx.restore();
+        }
+      } catch (err) {
+        // ignore image errors
+      }
 
       // Footer
-      ctx.fillStyle = 'rgba(148,163,184,0.5)';
-      ctx.font = `500 20px ${fontFamily}, sans-serif`;
+      ctx.fillStyle = 'rgba(148,163,184,0.6)';
+      ctx.font = `500 18px ${fontFamily}, sans-serif`;
       ctx.textAlign = 'right';
-      ctx.fillText('SOULFLARES - BOSS SYSTEM v2.0', width - 80, 840);
+      ctx.fillText('SOULFLARES - BOSS SYSTEM v2.0', width - 80, 860);
+
+      return canvas.toBuffer('image/png');
+    },
+
+    async generateBossSpawnFrames(payload, frames = 6) {
+      const buffers = [];
+      for (let i = 0; i < frames; i++) {
+        // pulse factor between 0.85 .. 1.15
+        const pulse = 1 + Math.sin((i / frames) * Math.PI * 2) * 0.08;
+        const adjusted = { ...payload, pulse };
+        const buf = await this._renderSpawnFrame(adjusted);
+        buffers.push(buf);
+      }
+      return buffers;
+    },
+
+    // internal: render a single frame which respects payload.pulse for subtle overlay changes
+    async _renderSpawnFrame(payload) {
+      const { pulse = 1 } = payload;
+      const {
+        bossName,
+        bossKey,
+        anime,
+        difficulty,
+        hpMax,
+        isSuper,
+        isEvent,
+        participants = [],
+        fontFamily = 'sans-serif'
+      } = payload;
+
+      const width = 1600;
+      const height = 900;
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+
+      // Background (try per-boss background, fallback to gradient)
+      const backgroundPath = resolveBossBackground({ anime, bossKey, difficulty, defeated: false });
+      await drawBackground(ctx, width, height, backgroundPath);
+
+      // subtle overlay that pulses
+      ctx.fillStyle = `rgba(255,255,255,${(pulse - 1) * 0.06})`;
+      ctx.fillRect(0, 0, width, height);
+      drawOverlay(ctx, width, height);
+
+      // reuse main renderer pieces (simplified): top panel and HP text
+      const diffColor = difficulty === 'nightmare' ? '#ff6b8a' : difficulty === 'hard' ? '#ffb86b' : '#34d399';
+      const typeColor = isEvent ? '#f97316' : isSuper ? '#e879f9' : '#38bdf8';
+
+      drawGlassPanel(ctx, 40, 40, width - 80, 180);
+      ctx.fillStyle = typeColor;
+      ctx.fillRect(40, 40, width - 80, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 72px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(bossName, 120, 120);
+
+      drawGlassPanel(ctx, 80, 240, 1440, 400);
+      drawHpBar(ctx, 140, 330, 1320, 56, hpMax, hpMax, diffColor);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `700 36px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`${hpMax.toLocaleString()} HP`, width / 2, 364);
+
+      // character if available
+      try {
+        const charPath = resolveBossCharacter({ bossKey, anime });
+        if (charPath) {
+          const img = await loadImage(charPath);
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur = 40;
+          const charW = Math.floor(width * 0.42);
+          const charH = Math.floor(height * 0.9);
+          const charX = width - charW - 60;
+          const charY = height - charH - 40;
+          const ratio = Math.min(charW / img.width, charH / img.height);
+          const dw = Math.floor(img.width * ratio);
+          const dh = Math.floor(img.height * ratio);
+          ctx.drawImage(img, charX + (charW - dw), charY + (charH - dh), dw, dh);
+          ctx.restore();
+        }
+      } catch (e) {}
 
       return canvas.toBuffer('image/png');
     },
@@ -265,7 +369,7 @@ function createBossRenderService() {
       const ctx = canvas.getContext('2d');
       const accent = difficultyColor(difficulty);
 
-      const backgroundPath = resolveBossBackground({ anime, difficulty, defeated });
+      const backgroundPath = resolveBossBackground({ anime, bossKey, difficulty, defeated });
       await drawBackground(ctx, width, height, backgroundPath);
       drawOverlay(ctx, width, height);
 
