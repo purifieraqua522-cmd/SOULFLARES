@@ -12,19 +12,33 @@
 } = require('discord.js');
 const { replyError } = require('../../ui/responders');
 
+const E = {
+  store: '<:store:1475231370518466763>',
+  chakra: '<:chakra:1475231026279350422>',
+  berries: '<:berries:1475230822754811968>',
+  reiryoku: '<:reiryoku:1475230771177324677>',
+  cursed: '<:cursed_energy:1475230701489225910>',
+  onepiece: { id: '1475231200036786257', name: 'onepiece' },
+  naruto: { id: '1475231141677109259', name: 'naruto' },
+  bleach: { id: '1475231083670016160', name: 'bleach' },
+  jjk: { id: '1475230934855979019', name: 'jjk' },
+  global: { id: '1475230882607398992', name: 'global' },
+  ok: '<:ok:1475231273047031889>'
+};
+
 const ANIME_OPTIONS = [
-  { label: 'One Piece', value: 'onepiece', emoji: '🏴‍☠️' },
-  { label: 'Naruto', value: 'naruto', emoji: '🍂' },
-  { label: 'Bleach', value: 'bleach', emoji: '⚪' },
-  { label: 'JJK', value: 'jjk', emoji: '🖤' },
-  { label: 'Global', value: 'global', emoji: '🌍' }
+  { label: 'One Piece', value: 'onepiece', emoji: E.onepiece },
+  { label: 'Naruto', value: 'naruto', emoji: E.naruto },
+  { label: 'Bleach', value: 'bleach', emoji: E.bleach },
+  { label: 'JJK', value: 'jjk', emoji: E.jjk },
+  { label: 'Global', value: 'global', emoji: E.global }
 ];
 
 const CURRENCY_EMOJI = {
-  berries: '🍖',
-  chakra: '⚡',
-  reiryoku: '👻',
-  cursed_energy: '🔮'
+  berries: E.berries,
+  chakra: E.chakra,
+  reiryoku: E.reiryoku,
+  cursed_energy: E.cursed
 };
 
 const data = new SlashCommandBuilder()
@@ -73,21 +87,9 @@ function buildStoreRows({ selectedAnime, selectedItemKey, pageItems, currentPage
     .addOptions(itemOptions);
 
   const navRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('store_prev')
-      .setLabel('Prev')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(currentPage <= 0),
-    new ButtonBuilder()
-      .setCustomId('store_next')
-      .setLabel('Next')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(currentPage >= totalPages - 1),
-    new ButtonBuilder()
-      .setCustomId('store_buy')
-      .setLabel('Buy')
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(!selectedItemKey)
+    new ButtonBuilder().setCustomId('store_prev').setLabel('Prev').setStyle(ButtonStyle.Secondary).setDisabled(currentPage <= 0),
+    new ButtonBuilder().setCustomId('store_next').setLabel('Next').setStyle(ButtonStyle.Secondary).setDisabled(currentPage >= totalPages - 1),
+    new ButtonBuilder().setCustomId('store_buy').setLabel('Buy').setStyle(ButtonStyle.Success).setDisabled(!selectedItemKey)
   );
 
   return {
@@ -105,14 +107,14 @@ function buildV2Payload(state) {
     ? pageItems.map((item, idx) => {
         const num = currentPage * 5 + idx + 1;
         const emoji = CURRENCY_EMOJI[item.price_currency] || '💰';
-        const marker = selectedItemKey === item.item_key ? '✅ ' : '';
+        const marker = selectedItemKey === item.item_key ? `${E.ok} ` : '';
         return `${marker}${num}. **${item.display_name}** - ${item.price_amount} ${emoji} (${item.price_currency})`;
       })
     : ['No items available in this category.'];
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent('## 🛍️ SOULFLARES Store'),
+      new TextDisplayBuilder().setContent(`## ${E.store} SOULFLARES Store`),
       new TextDisplayBuilder().setContent(`Category: **${selectedAnime.toUpperCase()}** | Page **${currentPage + 1}/${totalPages}**`),
       new TextDisplayBuilder().setContent(lines.join('\n'))
     )
@@ -135,14 +137,14 @@ function buildFallbackPayload(state) {
 
   const embed = new EmbedBuilder()
     .setColor('#1e293b')
-    .setTitle('SOULFLARES Store')
+    .setTitle(`${E.store} SOULFLARES Store`)
     .setDescription(`Category: ${selectedAnime.toUpperCase()} | Page ${currentPage + 1}/${totalPages}`)
     .setFooter({ text: '2 select menus + Prev/Next/Buy' });
 
   if (pageItems.length) {
     pageItems.forEach((item, idx) => {
       const num = currentPage * 5 + idx + 1;
-      const selected = selectedItemKey === item.item_key ? '✅ ' : '';
+      const selected = selectedItemKey === item.item_key ? `${E.ok} ` : '';
       embed.addFields({
         name: `${selected}${num}. ${item.display_name}`,
         value: `${item.price_amount} ${item.price_currency} | key: ${item.item_key}`,
@@ -207,32 +209,36 @@ async function execute(interaction, ctx) {
 
       try {
         if (i.customId === 'store_anime') {
+          await i.deferUpdate();
           state.selectedAnime = i.values[0];
           state.currentPage = 0;
           refreshState();
-          await i.update(buildPayload(state));
+          await interaction.editReply(buildPayload(state));
           return;
         }
 
         if (i.customId === 'store_item') {
+          await i.deferUpdate();
           const next = i.values[0];
           if (next !== 'none') state.selectedItemKey = next;
           refreshState();
-          await i.update(buildPayload(state));
+          await interaction.editReply(buildPayload(state));
           return;
         }
 
         if (i.customId === 'store_prev') {
+          await i.deferUpdate();
           if (state.currentPage > 0) state.currentPage -= 1;
           refreshState();
-          await i.update(buildPayload(state));
+          await interaction.editReply(buildPayload(state));
           return;
         }
 
         if (i.customId === 'store_next') {
+          await i.deferUpdate();
           if (state.currentPage < state.totalPages - 1) state.currentPage += 1;
           refreshState();
-          await i.update(buildPayload(state));
+          await interaction.editReply(buildPayload(state));
           return;
         }
 
@@ -242,12 +248,12 @@ async function execute(interaction, ctx) {
             return;
           }
 
+          await i.deferReply({ flags: MessageFlags.Ephemeral });
           const result = await ctx.storeService.buy(i.user.id, state.selectedItemKey);
           const balance = result.wallet?.[result.item.price_currency] ?? 0;
 
-          await i.reply({
-            content: `✅ Bought **${result.item.display_name}** | Effect: ${result.effect} | Balance: ${balance} ${result.item.price_currency}`,
-            flags: MessageFlags.Ephemeral
+          await i.editReply({
+            content: `${E.ok} Bought **${result.item.display_name}** | Effect: ${result.effect} | Balance: ${balance} ${result.item.price_currency}`
           });
 
           const all = await ctx.storeService.list();
@@ -277,7 +283,7 @@ async function execute(interaction, ctx) {
         if (supportsV2()) {
           const container = new ContainerBuilder()
             .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent('## 🛍️ SOULFLARES Store'),
+              new TextDisplayBuilder().setContent(`## ${E.store} SOULFLARES Store`),
               new TextDisplayBuilder().setContent('Store session expired. Run `/store` again.')
             )
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(1))
