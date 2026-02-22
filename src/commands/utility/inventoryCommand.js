@@ -21,6 +21,7 @@ async function execute(interaction, ctx) {
     const anime = interaction.options.getString('anime');
     const cards = await ctx.repos.getUserCards(interaction.user.id);
     const materials = await ctx.repos.getMaterials(interaction.user.id);
+    const wallet = await ctx.repos.getWallet(interaction.user.id);
 
     const filtered = anime
       ? await Promise.all(cards.map(async (c) => ({ owner: c, card: await ctx.repos.getCardByKey(c.card_key) }))).then((x) =>
@@ -34,8 +35,14 @@ async function execute(interaction, ctx) {
     const matLines = materials.length
       ? materials.slice(0, 8).map((m) => `- ${m.material_key}: ${m.qty}`)
       : ['- No materials'];
+    const walletLines = [
+      `- Berries: ${wallet?.berries || 0}`,
+      `- Chakra: ${wallet?.chakra || 0}`,
+      `- Reiryoku: ${wallet?.reiryoku || 0}`,
+      `- Cursed Energy: ${wallet?.cursed_energy || 0}`
+    ];
 
-    return replySuccess(interaction, 'Inventory', ['**Cards**', ...cardLines, '**Materials**', ...matLines]);
+    return replySuccess(interaction, 'Inventory', ['**Currencies**', ...walletLines, '**Cards**', ...cardLines, '**Materials**', ...matLines]);
   } catch (error) {
     return replyError(interaction, error.message || 'Inventory failed');
   }

@@ -12,6 +12,7 @@ const gearCommand = require('./utility/gearCommand');
 const fusionGuideCommand = require('./utility/fusionGuideCommand');
 const evoGuideCommand = require('./utility/evoGuideCommand');
 const bossGuideCommand = require('./utility/bossGuideCommand');
+const starterCommand = require('./utility/starterCommand');
 
 const addCurrencyCommand = require('./admin/addCurrencyCommand');
 const spawnBossCommand = require('./admin/spawnBossCommand');
@@ -30,6 +31,7 @@ const commandModules = [
   fusionGuideCommand,
   evoGuideCommand,
   bossGuideCommand,
+  starterCommand,
   addCurrencyCommand,
   spawnBossCommand,
   assetsCommand

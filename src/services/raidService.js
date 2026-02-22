@@ -3,6 +3,11 @@
 function createRaidService(repos) {
   return {
     async startRaid(userId, anime, difficulty) {
+      try {
+        await repos.consumeMaterial(userId, 'raid_ticket', 1);
+      } catch {
+        throw new Error('You need 1 raid_ticket to start a raid. Buy one in /store buy.');
+      }
       const raid = await repos.createRaid({
         anime,
         host_user_id: userId,

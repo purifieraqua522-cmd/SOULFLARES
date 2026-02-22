@@ -92,7 +92,10 @@ async function main() {
       try {
         await module.autocomplete(interaction, ctx);
       } catch (error) {
-        logWarn('Autocomplete failed', { command: interaction.commandName, error: error.message });
+        const msg = String(error?.message || '');
+        if (!msg.includes('Unknown interaction')) {
+          logWarn('Autocomplete failed', { command: interaction.commandName, error: msg });
+        }
       }
       return;
     }

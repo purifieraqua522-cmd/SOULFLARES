@@ -23,7 +23,12 @@ function resolveCardBackground(anime) {
 
 async function drawCardArtwork(ctx, imagePath) {
   if (!imagePath || !fs.existsSync(imagePath)) return;
-  const image = await loadImage(imagePath);
+  let image;
+  try {
+    image = await loadImage(imagePath);
+  } catch {
+    return;
+  }
 
   const artX = 470;
   const artY = 40;
@@ -48,8 +53,16 @@ async function generateCardPng({ card, ownerTag, power, ascension, customName, i
 
   const bgPath = resolveCardBackground(card.anime);
   if (bgPath) {
-    const bg = await loadImage(bgPath);
-    ctx.drawImage(bg, 0, 0, 900, 500);
+    try {
+      const bg = await loadImage(bgPath);
+      ctx.drawImage(bg, 0, 0, 900, 500);
+    } catch {
+      const grad = ctx.createLinearGradient(0, 0, 900, 500);
+      grad.addColorStop(0, '#0b1020');
+      grad.addColorStop(1, '#1f2937');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 900, 500);
+    }
   } else {
     const grad = ctx.createLinearGradient(0, 0, 900, 500);
     grad.addColorStop(0, '#0b1020');

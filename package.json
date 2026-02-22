@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "soulfalres-bot",
   "version": "1.0.0",
   "description": "SOULFALRES Discord Anime Card Game Bot",
@@ -17,6 +17,7 @@
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "node-cron": "^4.0.7",
+    "seeds": "^2.3.1",
     "zod": "^3.24.2"
   }
 }

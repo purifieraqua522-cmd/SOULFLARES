@@ -12,6 +12,14 @@ function createRepositories(db) {
       return rows[0] || null;
     },
 
+    async addProfileXp(userId, amount) {
+      await this.ensureProfile(userId);
+      const profile = await this.getProfile(userId);
+      const nextXp = Number(profile?.xp || 0) + Number(amount || 0);
+      await safeDb(db.from('profiles').update({ xp: nextXp }).eq('user_id', userId), 'addProfileXp');
+      return nextXp;
+    },
+
     async getWallet(userId) {
       const rows = await safeDb(db.from('wallets').select('*').eq('user_id', userId).limit(1), 'getWallet');
       return rows[0] || null;
@@ -127,6 +135,14 @@ function createRepositories(db) {
       return safeDb(db.from('inventory_materials').select('*').eq('user_id', userId), 'getMaterials');
     },
 
+    async getMaterialQty(userId, materialKey) {
+      const rows = await safeDb(
+        db.from('inventory_materials').select('*').eq('user_id', userId).eq('material_key', materialKey).limit(1),
+        'getMaterialQty'
+      );
+      return rows[0]?.qty || 0;
+    },
+
     async consumeMaterial(userId, materialKey, qty = 1) {
       const rows = await safeDb(
         db.from('inventory_materials').select('*').eq('user_id', userId).eq('material_key', materialKey).limit(1),
@@ -189,9 +205,13 @@ function createRepositories(db) {
     },
 
     async getStoreItems(anime) {
-      const query = db.from('store_items').select('*').eq('active', true);
-      const scoped = anime ? query.eq('anime', anime) : query;
-      return safeDb(scoped, 'getStoreItems');
+      if (anime) {
+        return safeDb(
+          db.from('store_items').select('*').eq('active', true).in('anime', [anime, 'global']),
+          'getStoreItems'
+        );
+      }
+      return safeDb(db.from('store_items').select('*').eq('active', true), 'getStoreItems');
     },
 
     async getStoreItem(itemKey) {

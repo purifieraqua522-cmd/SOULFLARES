@@ -153,22 +153,15 @@ async function autocomplete(interaction, ctx) {
 
     const sub = interaction.options.getSubcommand();
     const bosses = sub === 'vote' ? await ctx.repos.getOpenBosses() : await ctx.repos.getVisibleBosses();
-    const withMeta = await Promise.all(
-      bosses.map(async (b) => ({
-        row: b,
-        meta: await ctx.repos.getBossByKey(b.boss_key)
-      }))
-    );
-
-    const choices = withMeta
+    const choices = bosses
       .filter((x) => {
-        const label = `${x.meta?.display_name || x.row.boss_key} ${x.row.boss_key} ${x.row.id}`.toLowerCase();
+        const label = `${x.boss_key} ${x.id}`.toLowerCase();
         return !query || label.includes(query);
       })
       .slice(0, 25)
       .map((x) => ({
-        name: `${x.meta?.display_name || x.row.boss_key} | ${x.row.state} | HP ${x.row.hp_current}/${x.row.hp_max}`,
-        value: x.row.id
+        name: `${x.boss_key} | ${x.state} | HP ${x.hp_current}/${x.hp_max}`,
+        value: x.id
       }));
 
     return interaction.respond(choices);

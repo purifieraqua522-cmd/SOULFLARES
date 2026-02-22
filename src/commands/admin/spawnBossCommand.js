@@ -1,20 +1,20 @@
 ﻿const { SlashCommandBuilder } = require('discord.js');
 const { replyError, replySuccess } = require('../../ui/responders');
+const { animes } = require('../../data/constants');
 
 const data = new SlashCommandBuilder()
   .setName('spawnboss')
   .setDescription('Owner: spawn bosses manually')
-  .addSubcommand((s) => s.setName('list').setDescription('List all available boss keys'))
+  .addSubcommand((s) => s.setName('list').setDescription('List all available bosses by type and anime'))
   .addSubcommand((s) =>
     s
-      .setName('spawn')
-      .setDescription('Spawn a boss by key or by anime pool')
-      .addStringOption((o) => o.setName('boss_key').setDescription('Choose boss (optional)').setRequired(false).setAutocomplete(true))
+      .setName('normal')
+      .setDescription('Spawn a normal boss')
       .addStringOption((o) =>
         o
           .setName('anime')
-          .setDescription('Fallback anime pool if no boss_key is set')
-          .setRequired(false)
+          .setDescription('Choose anime')
+          .setRequired(true)
           .addChoices(
             { name: 'One Piece', value: 'onepiece' },
             { name: 'Naruto', value: 'naruto' },
@@ -22,7 +22,43 @@ const data = new SlashCommandBuilder()
             { name: 'JJK', value: 'jjk' }
           )
       )
-      .addBooleanOption((o) => o.setName('super').setDescription('Use super boss from anime pool').setRequired(false))
+      .addStringOption((o) => o.setName('boss').setDescription('Choose boss').setRequired(true).setAutocomplete(true))
+  )
+  .addSubcommand((s) =>
+    s
+      .setName('event')
+      .setDescription('Spawn an event boss')
+      .addStringOption((o) =>
+        o
+          .setName('anime')
+          .setDescription('Choose anime')
+          .setRequired(true)
+          .addChoices(
+            { name: 'One Piece', value: 'onepiece' },
+            { name: 'Naruto', value: 'naruto' },
+            { name: 'Bleach', value: 'bleach' },
+            { name: 'JJK', value: 'jjk' }
+          )
+      )
+      .addStringOption((o) => o.setName('boss').setDescription('Choose event boss').setRequired(true).setAutocomplete(true))
+  )
+  .addSubcommand((s) =>
+    s
+      .setName('super')
+      .setDescription('Spawn a super boss')
+      .addStringOption((o) =>
+        o
+          .setName('anime')
+          .setDescription('Choose anime')
+          .setRequired(true)
+          .addChoices(
+            { name: 'One Piece', value: 'onepiece' },
+            { name: 'Naruto', value: 'naruto' },
+            { name: 'Bleach', value: 'bleach' },
+            { name: 'JJK', value: 'jjk' }
+          )
+      )
+      .addStringOption((o) => o.setName('boss').setDescription('Choose super boss').setRequired(true).setAutocomplete(true))
   );
 
 async function execute(interaction, ctx) {
@@ -37,30 +73,47 @@ async function execute(interaction, ctx) {
       const bosses = await ctx.bossService.listBossCatalog();
       if (!bosses.length) return replySuccess(interaction, 'Boss Catalog', ['No bosses found in the database.']);
 
-      return replySuccess(
-        interaction,
-        'Boss Catalog',
-        bosses.map((b) => `- \`${b.boss_key}\` | ${b.display_name} | anime=${b.anime} | super=${b.is_super ? 'yes' : 'no'}`).slice(0, 25)
-      );
-    }
+      const animeList = ['onepiece', 'naruto', 'bleach', 'jjk'];
+      const lines = [];
 
-    if (sub === 'spawn') {
-      const bossKey = interaction.options.getString('boss_key');
-      const anime = interaction.options.getString('anime');
-      const isSuper = interaction.options.getBoolean('super') || false;
+      for (const anime of animeList) {
+        const animeName = animes[anime]?.label || anime;
+        lines.push(`**${animeName}**`);
 
-      if (!bossKey && !anime) {
-        return replyError(interaction, 'Provide `boss_key` or `anime`.');
+        const normalBosses = bosses.filter((b) => b.anime === anime && !b.is_event && !b.is_super);
+        const eventBosses = bosses.filter((b) => b.anime === anime && b.is_event && !b.is_super);
+        const superBosses = bosses.filter((b) => b.anime === anime && b.is_super);
+
+        if (normalBosses.length) {
+          lines.push('  *Normal:*');
+          normalBosses.forEach((b) => lines.push(`    - ${b.display_name}`));
+        }
+        if (eventBosses.length) {
+          lines.push('  *Event:*');
+          eventBosses.forEach((b) => lines.push(`    - ${b.display_name}`));
+        }
+        if (superBosses.length) {
+          lines.push('  *Super:*');
+          superBosses.forEach((b) => lines.push(`    - ${b.display_name}`));
+        }
+        lines.push('');
       }
 
-      const boss = bossKey
-        ? await ctx.bossService.spawnSpecificBoss(bossKey)
-        : await ctx.bossService.spawnScheduledBoss({ anime, isSuper });
+      return replySuccess(interaction, 'Boss Catalog', lines.slice(0, 30));
+    }
+
+    if (['normal', 'event', 'super'].includes(sub)) {
+      const anime = interaction.options.getString('anime', true);
+      const bossDisplay = interaction.options.getString('boss', true);
+
+      const boss = await ctx.bossService.spawnSpecificBoss(bossDisplay);
 
       return replySuccess(interaction, 'Boss Spawned', [
-        `ID: \`${boss.id}\``,
-        `Boss Key: **${boss.boss_key}**`,
-        `HP: **${boss.hp_current}/${boss.hp_max}**`
+        `Type: **${sub.toUpperCase()}**`,
+        `Anime: **${animes[anime]?.label || anime}**`,
+        `Boss: **${boss.boss_key}**`,
+        `HP: **${boss.hp_current}/${boss.hp_max}**`,
+        `ID: \`${boss.id}\``
       ]);
     }
   } catch (error) {
@@ -71,22 +124,51 @@ async function execute(interaction, ctx) {
 async function autocomplete(interaction, ctx) {
   try {
     const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'boss_key') return interaction.respond([]);
+    if (focused.name !== 'boss') return interaction.respond([]);
+
+    const sub = interaction.options.getSubcommand();
+    const anime = interaction.options.getString('anime');
+
+    if (!anime) return interaction.respond([]);
+
+    // Use a cached boss list if available, otherwise fetch from DB
+    const allBosses = await Promise.race([
+      ctx.bossService.listBossCatalog(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2500))
+    ]).catch(() => []);
+
+    if (!allBosses.length) return interaction.respond([]);
+
+    let filteredBosses = allBosses.filter((b) => b.anime === anime);
+
+    if (sub === 'normal') {
+      filteredBosses = filteredBosses.filter((b) => !b.is_event && !b.is_super);
+    } else if (sub === 'event') {
+      filteredBosses = filteredBosses.filter((b) => b.is_event && !b.is_super);
+    } else if (sub === 'super') {
+      filteredBosses = filteredBosses.filter((b) => b.is_super);
+    }
+
     const query = String(focused.value || '').toLowerCase();
-    const bosses = await ctx.bossService.listBossCatalog();
-    const choices = bosses
+    const choices = filteredBosses
       .filter((b) => {
-        const label = `${b.boss_key} ${b.display_name} ${b.anime}`.toLowerCase();
+        const label = `${b.display_name}`.toLowerCase();
         return !query || label.includes(query);
       })
       .slice(0, 25)
       .map((b) => ({
-        name: `${b.display_name} | ${b.anime} | ${b.is_super ? 'super' : 'normal'}`,
+        name: b.display_name,
         value: b.boss_key
       }));
+
     return interaction.respond(choices);
-  } catch {
-    return interaction.respond([]);
+  } catch (err) {
+    // Silently fail and return empty suggestions to prevent timeout errors
+    try {
+      return interaction.respond([]);
+    } catch {
+      // Already responded or interaction expired
+    }
   }
 }
 

@@ -69,6 +69,7 @@ create table if not exists bosses (
   anime text not null,
   display_name text not null,
   is_super boolean not null default false,
+  is_event boolean not null default false,
   hp_base int not null,
   power_base int not null,
   drop_table jsonb not null default '{}'::jsonb,

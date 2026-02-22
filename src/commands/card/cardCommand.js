@@ -36,6 +36,7 @@ async function execute(interaction, ctx) {
     await ctx.repos.ensureProfile(userId);
 
     if (sub === 'view') {
+      await interaction.deferReply();
       const cardKey = interaction.options.getString('card_key', true);
       const customName = interaction.options.getString('custom_name');
       const card = await ctx.repos.getCardByKey(cardKey);
@@ -55,7 +56,7 @@ async function execute(interaction, ctx) {
       });
 
       const file = new AttachmentBuilder(png, { name: `${card.key}.png` });
-      return interaction.reply({ files: [file] });
+      return interaction.editReply({ files: [file] });
     }
 
     if (sub === 'info') {
@@ -121,17 +122,11 @@ async function autocomplete(interaction, ctx) {
 
     if (focused.name === 'card_key') {
       const owned = await ctx.repos.getUserCards(interaction.user.id);
-      const choices = (
-        await Promise.all(
-          owned.map(async (u) => {
-            const card = await ctx.repos.getCardByKey(u.card_key);
-            return {
-              name: `${card?.display_name || u.card_key} | x${u.copies} | L${u.card_level} A+${u.ascension}`,
-              value: u.card_key
-            };
-          })
-        )
-      )
+      const choices = owned
+        .map((u) => ({
+          name: `${u.card_key} | x${u.copies} | L${u.card_level} A+${u.ascension}`,
+          value: u.card_key
+        }))
         .filter((x) => x.value.toLowerCase().includes(query) || x.name.toLowerCase().includes(query))
         .slice(0, 25);
 

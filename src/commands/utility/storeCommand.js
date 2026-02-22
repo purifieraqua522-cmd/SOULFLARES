@@ -43,10 +43,13 @@ async function execute(interaction, ctx) {
 
     if (sub === 'buy') {
       const itemKey = interaction.options.getString('item_key', true);
-      const item = await ctx.storeService.buy(interaction.user.id, itemKey);
+      const result = await ctx.storeService.buy(interaction.user.id, itemKey);
+      const current = result.wallet?.[result.item.price_currency] ?? 0;
       return replySuccess(interaction, 'Purchase Complete', [
-        `Item: **${item.display_name}**`,
-        `Price: **${item.price_amount} ${item.price_currency}**`
+        `Item: **${result.item.display_name}**`,
+        `Price: **${result.item.price_amount} ${result.item.price_currency}**`,
+        `Effect: **${result.effect}**`,
+        `Balance: **${current} ${result.item.price_currency}**`
       ]);
     }
   } catch (error) {

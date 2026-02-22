@@ -32,9 +32,13 @@ function difficultyColor(difficulty) {
 
 async function drawBackground(ctx, width, height, backgroundPath) {
   if (backgroundPath) {
-    const image = await loadImage(backgroundPath);
-    ctx.drawImage(image, 0, 0, width, height);
-    return;
+    try {
+      const image = await loadImage(backgroundPath);
+      ctx.drawImage(image, 0, 0, width, height);
+      return;
+    } catch {
+      // Fall through to gradient fallback.
+    }
   }
 
   const grad = ctx.createLinearGradient(0, 0, width, height);
@@ -155,4 +159,3 @@ function createBossRenderService() {
 }
 
 module.exports = { createBossRenderService };
-
