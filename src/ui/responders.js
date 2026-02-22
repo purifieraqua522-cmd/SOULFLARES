@@ -1,11 +1,11 @@
-﻿const { EmbedBuilder } = require('discord.js');
+﻿const { EmbedBuilder, MessageFlags } = require('discord.js');
 
 async function replyError(interaction, message) {
   const embed = new EmbedBuilder().setColor('#ef4444').setTitle('SOULFALRES Error').setDescription(message);
   if (interaction.deferred || interaction.replied) {
     return interaction.editReply({ embeds: [embed] });
   }
-  return interaction.reply({ ephemeral: true, embeds: [embed] });
+  return interaction.reply({ flags: MessageFlags.Ephemeral, embeds: [embed] });
 }
 
 async function replySuccess(interaction, title, lines) {

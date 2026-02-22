@@ -36,7 +36,9 @@ async function execute(interaction, ctx) {
     await ctx.repos.ensureProfile(userId);
 
     if (sub === 'view') {
-      await interaction.deferReply();
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
       const cardKey = interaction.options.getString('card_key', true);
       const customName = interaction.options.getString('custom_name');
       const card = await ctx.repos.getCardByKey(cardKey);

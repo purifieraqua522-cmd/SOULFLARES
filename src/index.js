@@ -108,13 +108,26 @@ async function main() {
     }
 
     try {
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
       await module.execute(interaction, ctx);
     } catch (error) {
       logError('Command execution failed', error);
-      if (!interaction.replied && !interaction.deferred) {
+      const code = Number(error?.code || 0);
+      const isAckError = code === 10062 || code === 40060;
+      if (isAckError) {
+        logWarn('Interaction ack timeout/already acknowledged', { command: interaction.commandName, code });
+        return;
+      }
+
+      try {
         await replyError(interaction, 'Command failed unexpectedly.');
-      } else {
-        logWarn('Interaction already replied, skipped error reply.');
+      } catch (replyErr) {
+        const replyCode = Number(replyErr?.code || 0);
+        if (replyCode !== 10062 && replyCode !== 40060) {
+          logWarn('Failed to send error reply', { command: interaction.commandName, error: replyErr.message });
+        }
       }
     }
   });

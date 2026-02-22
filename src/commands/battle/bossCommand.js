@@ -70,7 +70,9 @@ async function execute(interaction, ctx) {
     }
 
     if (sub === 'attack') {
-      await interaction.deferReply();
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
 
       const selected = interaction.options.getString('boss');
       const cardKey = interaction.options.getString('card_key', true);
