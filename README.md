@@ -25,6 +25,7 @@ Discord anime card game bot (JavaScript + discord.js + Supabase).
 - Owner manual boss control by exact boss key
 - Asset-based card ingestion from `assets/cards`
 - Automatic PNG generation with local uploaded card art
+- Modern boss-fight PNG result on every `/boss attack`
 
 ## Setup
 1. Install dependencies
@@ -72,6 +73,13 @@ assets/
       sung_jin_woo.png
   fonts/
     Orbitron-Regular.ttf
+  backgrounds/
+    boss/
+      onepiece_hard.png
+      default.png
+    cards/
+      onepiece.png
+      default.png
 ```
 
 Rules:
@@ -79,10 +87,12 @@ Rules:
 - Example: `gojo_limitless.png` -> key `gojo_limitless`, display name `Gojo Limitless`.
 - Place files under anime folders: `onepiece`, `naruto`, `bleach`, `jjk`, `secret`.
 - On startup, the bot auto-syncs these files into the `cards` table.
+- Background files are auto-used with fallback matching.
 - You can force resync with:
 ```bash
 npm run sync:assets
 ```
+- Full background naming guide: `assets/README.md`
 
 ## Font Loading (Hetzner / Railway)
 The bot automatically registers fonts from:

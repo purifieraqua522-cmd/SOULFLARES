@@ -1,4 +1,4 @@
-﻿const { SlashCommandBuilder } = require('discord.js');
+﻿const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const { replyError, replySuccess } = require('../../ui/responders');
 
 const data = new SlashCommandBuilder()
@@ -70,12 +70,41 @@ async function execute(interaction, ctx) {
 
       const power = Math.floor(card.base_power * (1 + owned.ascension * 0.1) * (1 + owned.card_level * 0.02));
       const result = await ctx.bossService.attackBoss(userId, bossId, power);
+      const bossMeta = await ctx.repos.getBossByKey(result.updated.boss_key);
 
-      return replySuccess(interaction, 'Boss Attack', [
-        `Damage: **${result.damage}**`,
-        `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
-        `Status: **${result.updated.state}**`
-      ]);
+      try {
+        const battlePng = await ctx.bossRenderService.generateBossFightPng({
+          bossName: bossMeta?.display_name || result.updated.boss_key,
+          bossKey: result.updated.boss_key,
+          anime: bossMeta?.anime || 'global',
+          difficulty: result.updated.difficulty || 'easy',
+          hpCurrent: result.updated.hp_current,
+          hpMax: result.updated.hp_max,
+          attackerTag: interaction.user.tag,
+          cardName: card.display_name,
+          damage: result.damage,
+          defeated: result.defeated,
+          fontFamily: ctx.primaryFontFamily
+        });
+
+        const file = new AttachmentBuilder(battlePng, { name: `boss_fight_${result.updated.id}.png` });
+        return interaction.reply({
+          content: [
+            `Boss: **${bossMeta?.display_name || result.updated.boss_key}**`,
+            `Damage: **${result.damage}**`,
+            `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+            `Status: **${result.updated.state}**`
+          ].join('\n'),
+          files: [file]
+        });
+      } catch (renderError) {
+        return replySuccess(interaction, 'Boss Attack', [
+          `Damage: **${result.damage}**`,
+          `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+          `Status: **${result.updated.state}**`,
+          '`PNG render fallback used`'
+        ]);
+      }
     }
   } catch (error) {
     return replyError(interaction, error.message || 'Boss command failed');

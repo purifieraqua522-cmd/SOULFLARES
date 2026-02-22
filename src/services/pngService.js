@@ -1,11 +1,24 @@
 ﻿const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const fs = require('fs');
+const path = require('path');
 
 function rarityColor(rarity) {
   if (rarity === 'secret') return '#ff2e63';
   if (rarity === 'mythical') return '#00d4ff';
   if (rarity === 'legendary') return '#f7b801';
   return '#7f5af0';
+}
+
+function findFirstExisting(paths) {
+  for (const candidate of paths) {
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function resolveCardBackground(anime) {
+  const root = path.resolve(process.cwd(), 'assets/backgrounds/cards');
+  return findFirstExisting([path.join(root, `${anime}.png`), path.join(root, 'default.png')]);
 }
 
 async function drawCardArtwork(ctx, imagePath) {
@@ -33,10 +46,22 @@ async function generateCardPng({ card, ownerTag, power, ascension, customName, i
   const canvas = createCanvas(900, 500);
   const ctx = canvas.getContext('2d');
 
-  const grad = ctx.createLinearGradient(0, 0, 900, 500);
-  grad.addColorStop(0, '#0b1020');
-  grad.addColorStop(1, '#1f2937');
-  ctx.fillStyle = grad;
+  const bgPath = resolveCardBackground(card.anime);
+  if (bgPath) {
+    const bg = await loadImage(bgPath);
+    ctx.drawImage(bg, 0, 0, 900, 500);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, 900, 500);
+    grad.addColorStop(0, '#0b1020');
+    grad.addColorStop(1, '#1f2937');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 900, 500);
+  }
+
+  const overlay = ctx.createLinearGradient(0, 0, 0, 500);
+  overlay.addColorStop(0, 'rgba(15,23,42,0.30)');
+  overlay.addColorStop(1, 'rgba(2,6,23,0.72)');
+  ctx.fillStyle = overlay;
   ctx.fillRect(0, 0, 900, 500);
 
   ctx.fillStyle = rarityColor(card.rarity);
