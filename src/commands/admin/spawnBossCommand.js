@@ -1,66 +1,139 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { replyError, replySuccess } = require('../../ui/responders');
+const {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder,
+  MessageFlags,
+  AttachmentBuilder
+} = require('discord.js');
+const { replyError } = require('../../ui/responders');
 const { animes } = require('../../data/constants');
 const { isOwnerOrAdmin } = require('../../core/owners');
 
-const data = new SlashCommandBuilder()
-  .setName('spawnboss')
-  .setDescription('Owner: spawn bosses manually')
-  .addSubcommand((s) => s.setName('list').setDescription('List all available bosses by type and anime'))
-  .addSubcommand((s) =>
-    s
-      .setName('normal')
-      .setDescription('Spawn a normal boss')
-      .addStringOption((o) =>
-        o
-          .setName('anime')
-          .setDescription('Choose anime')
-          .setRequired(true)
-          .addChoices(
-            { name: 'One Piece', value: 'onepiece' },
-            { name: 'Naruto', value: 'naruto' },
-            { name: 'Bleach', value: 'bleach' },
-            { name: 'JJK', value: 'jjk' }
-          )
+const TYPE_OPTIONS = [
+  { label: 'Normal', value: 'normal' },
+  { label: 'Event', value: 'event' },
+  { label: 'Super', value: 'super' }
+];
+
+const ANIME_OPTIONS = [
+  { label: 'One Piece', value: 'onepiece' },
+  { label: 'Naruto', value: 'naruto' },
+  { label: 'Bleach', value: 'bleach' },
+  { label: 'JJK', value: 'jjk' }
+];
+
+const data = new SlashCommandBuilder().setName('spawnboss').setDescription('Spawn bosses from one interactive menu');
+
+function filterBosses(catalog, anime, type) {
+  return catalog.filter((boss) => {
+    if (boss.anime !== anime) return false;
+    if (type === 'normal') return !boss.is_event && !boss.is_super;
+    if (type === 'event') return boss.is_event && !boss.is_super;
+    if (type === 'super') return boss.is_super;
+    return false;
+  });
+}
+
+function normalizeState(state, catalog) {
+  let filtered = filterBosses(catalog, state.anime, state.type);
+
+  if (!filtered.length) {
+    for (const anime of ANIME_OPTIONS.map((x) => x.value)) {
+      for (const type of TYPE_OPTIONS.map((x) => x.value)) {
+        const next = filterBosses(catalog, anime, type);
+        if (next.length) {
+          state.anime = anime;
+          state.type = type;
+          filtered = next;
+          break;
+        }
+      }
+      if (filtered.length) break;
+    }
+  }
+
+  if (!filtered.find((x) => x.boss_key === state.bossKey)) {
+    state.bossKey = filtered[0]?.boss_key || null;
+  }
+
+  return filtered;
+}
+
+function buildView(state, catalog, disabled = false) {
+  const filtered = normalizeState(state, catalog);
+  const selected = filtered.find((x) => x.boss_key === state.bossKey) || null;
+
+  const typeRow = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('spawnboss_type')
+      .setPlaceholder('Select boss type')
+      .setDisabled(disabled)
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(
+        TYPE_OPTIONS.map((opt) => ({
+          label: opt.label,
+          value: opt.value,
+          default: state.type === opt.value
+        }))
       )
-      .addStringOption((o) => o.setName('boss').setDescription('Choose boss').setRequired(true).setAutocomplete(true))
-  )
-  .addSubcommand((s) =>
-    s
-      .setName('event')
-      .setDescription('Spawn an event boss')
-      .addStringOption((o) =>
-        o
-          .setName('anime')
-          .setDescription('Choose anime')
-          .setRequired(true)
-          .addChoices(
-            { name: 'One Piece', value: 'onepiece' },
-            { name: 'Naruto', value: 'naruto' },
-            { name: 'Bleach', value: 'bleach' },
-            { name: 'JJK', value: 'jjk' }
-          )
-      )
-      .addStringOption((o) => o.setName('boss').setDescription('Choose event boss').setRequired(true).setAutocomplete(true))
-  )
-  .addSubcommand((s) =>
-    s
-      .setName('super')
-      .setDescription('Spawn a super boss')
-      .addStringOption((o) =>
-        o
-          .setName('anime')
-          .setDescription('Choose anime')
-          .setRequired(true)
-          .addChoices(
-            { name: 'One Piece', value: 'onepiece' },
-            { name: 'Naruto', value: 'naruto' },
-            { name: 'Bleach', value: 'bleach' },
-            { name: 'JJK', value: 'jjk' }
-          )
-      )
-      .addStringOption((o) => o.setName('boss').setDescription('Choose super boss').setRequired(true).setAutocomplete(true))
   );
+
+  const animeRow = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('spawnboss_anime')
+      .setPlaceholder('Select anime')
+      .setDisabled(disabled)
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(
+        ANIME_OPTIONS.map((opt) => ({
+          label: opt.label,
+          value: opt.value,
+          default: state.anime === opt.value
+        }))
+      )
+  );
+
+  const bossOptions = filtered.slice(0, 25).map((boss) => ({
+    label: boss.display_name.slice(0, 100),
+    value: boss.boss_key,
+    default: boss.boss_key === state.bossKey
+  }));
+
+  const bossRow = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('spawnboss_boss')
+      .setPlaceholder('Select boss')
+      .setDisabled(disabled || !bossOptions.length)
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(bossOptions.length ? bossOptions : [{ label: 'No bosses available', value: 'none', default: true }])
+  );
+
+  const spawnRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('spawnboss_spawn')
+      .setLabel('Spawn Boss')
+      .setStyle(ButtonStyle.Danger)
+      .setDisabled(disabled || !state.bossKey)
+  );
+
+  const embed = new EmbedBuilder()
+    .setColor('#0f172a')
+    .setTitle('SOULFALRES Boss Spawner')
+    .setDescription(
+      selected
+        ? `Type: **${state.type.toUpperCase()}**\nAnime: **${animes[state.anime]?.label || state.anime}**\nBoss: **${selected.display_name}**`
+        : 'No boss available for this selection.'
+    )
+    .setFooter({ text: 'Choose type, anime, boss, then press Spawn Boss' });
+
+  return { embeds: [embed], components: [typeRow, animeRow, bossRow, spawnRow] };
+}
 
 async function execute(interaction, ctx) {
   try {
@@ -72,127 +145,95 @@ async function execute(interaction, ctx) {
       );
     }
 
-    const sub = interaction.options.getSubcommand();
+    await interaction.deferReply();
 
-    if (sub === 'list') {
-      const bosses = await ctx.bossService.listBossCatalog();
-      if (!bosses.length) return replySuccess(interaction, 'Boss Catalog', ['No bosses found in the database.']);
-
-      const animeList = ['onepiece', 'naruto', 'bleach', 'jjk'];
-      const lines = [];
-
-      for (const anime of animeList) {
-        const animeName = animes[anime]?.label || anime;
-        lines.push(`**${animeName}**`);
-
-        const normalBosses = bosses.filter((b) => b.anime === anime && !b.is_event && !b.is_super);
-        const eventBosses = bosses.filter((b) => b.anime === anime && b.is_event && !b.is_super);
-        const superBosses = bosses.filter((b) => b.anime === anime && b.is_super);
-
-        if (normalBosses.length) {
-          lines.push('  *Normal:*');
-          normalBosses.forEach((b) => lines.push(`    - ${b.display_name}`));
-        }
-        if (eventBosses.length) {
-          lines.push('  *Event:*');
-          eventBosses.forEach((b) => lines.push(`    - ${b.display_name}`));
-        }
-        if (superBosses.length) {
-          lines.push('  *Super:*');
-          superBosses.forEach((b) => lines.push(`    - ${b.display_name}`));
-        }
-        lines.push('');
-      }
-
-      return replySuccess(interaction, 'Boss Catalog', lines.slice(0, 30));
+    const catalog = await ctx.bossService.listBossCatalog();
+    if (!catalog.length) {
+      return replyError(interaction, 'No bosses found in database. Seed bosses first.');
     }
 
-    if (['normal', 'event', 'super'].includes(sub)) {
-      const anime = interaction.options.getString('anime', true);
-      const bossDisplay = interaction.options.getString('boss', true);
+    const state = { type: 'normal', anime: 'onepiece', bossKey: null };
+    normalizeState(state, catalog);
 
-      const result = await ctx.bossService.spawnSpecificBoss(bossDisplay);
-      const { activeBoss, spawnPng } = result;
+    await interaction.editReply(buildView(state, catalog));
 
-      // Reply with PNG if available
-      if (spawnPng) {
-        const { AttachmentBuilder } = require('discord.js');
-        const file = new AttachmentBuilder(spawnPng, { name: `boss_spawn_${activeBoss.boss_key}.png` });
-        if (interaction.deferred || interaction.replied) {
-          return interaction.editReply({ files: [file] });
-        }
-        return interaction.reply({ files: [file] });
+    const message = await interaction.fetchReply();
+    const collector = message.createMessageComponentCollector({ time: 10 * 60 * 1000 });
+
+    collector.on('collect', async (i) => {
+      if (i.user.id !== interaction.user.id) {
+        await i.reply({ content: 'Only the command user can use this menu.', flags: MessageFlags.Ephemeral });
+        return;
       }
 
-      // Fallback to text response
-      return replySuccess(interaction, 'Boss Spawned', [
-        `Type: **${sub.toUpperCase()}**`,
-        `Anime: **${animes[anime]?.label || anime}**`,
-        `Boss: **${activeBoss.boss_key}**`,
-        `HP: **${activeBoss.hp_current}/${activeBoss.hp_max}**`,
-        `ID: \`${activeBoss.id}\``
-      ]);
-    }
+      try {
+        if (i.customId === 'spawnboss_type') {
+          state.type = i.values[0];
+          normalizeState(state, catalog);
+          await i.update(buildView(state, catalog));
+          return;
+        }
+
+        if (i.customId === 'spawnboss_anime') {
+          state.anime = i.values[0];
+          normalizeState(state, catalog);
+          await i.update(buildView(state, catalog));
+          return;
+        }
+
+        if (i.customId === 'spawnboss_boss') {
+          const picked = i.values[0];
+          if (picked !== 'none') state.bossKey = picked;
+          normalizeState(state, catalog);
+          await i.update(buildView(state, catalog));
+          return;
+        }
+
+        if (i.customId === 'spawnboss_spawn') {
+          const filtered = normalizeState(state, catalog);
+          const selected = filtered.find((x) => x.boss_key === state.bossKey);
+          if (!selected) {
+            await i.reply({ content: 'Pick a valid boss first.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          await i.deferUpdate();
+          const result = await ctx.bossService.spawnSpecificBoss(state.bossKey);
+          const { activeBoss, spawnPng } = result;
+
+          const doneView = buildView(state, catalog, true);
+          const successEmbed = new EmbedBuilder()
+            .setColor('#16a34a')
+            .setTitle('Boss Spawned')
+            .setDescription(
+              `Type: **${state.type.toUpperCase()}**\nAnime: **${animes[state.anime]?.label || state.anime}**\nBoss: **${selected.display_name}**\nHP: **${activeBoss.hp_current}/${activeBoss.hp_max}**`
+            );
+
+          if (spawnPng) {
+            const file = new AttachmentBuilder(spawnPng, { name: `boss_spawn_${activeBoss.boss_key}.png` });
+            await interaction.editReply({ embeds: [successEmbed], components: doneView.components, files: [file] });
+          } else {
+            await interaction.editReply({ embeds: [successEmbed], components: doneView.components, files: [] });
+          }
+
+          collector.stop('spawned');
+        }
+      } catch (err) {
+        await replyError(i, err.message || 'Boss spawn interaction failed');
+      }
+    });
+
+    collector.on('end', async (collected, reason) => {
+      if (reason === 'spawned') return;
+      try {
+        await interaction.editReply(buildView(state, catalog, true));
+      } catch {
+        // Message could be gone; ignore cleanup error.
+      }
+    });
   } catch (error) {
     return replyError(interaction, error.message || 'spawnboss failed');
   }
 }
 
-async function autocomplete(interaction, ctx) {
-  try {
-    const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'boss') return;
-
-    const sub = interaction.options.getSubcommand();
-    const anime = interaction.options.getString('anime');
-
-    if (!anime) {
-      await interaction.respond([]);
-      return;
-    }
-
-    // Use a cached boss list if available, otherwise fetch from DB
-    const allBosses = await Promise.race([
-      ctx.bossService.listBossCatalog(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2500))
-    ]).catch(() => []);
-
-    if (!allBosses.length) {
-      await interaction.respond([]);
-      return;
-    }
-
-    let filteredBosses = allBosses.filter((b) => b.anime === anime);
-
-    if (sub === 'normal') {
-      filteredBosses = filteredBosses.filter((b) => !b.is_event && !b.is_super);
-    } else if (sub === 'event') {
-      filteredBosses = filteredBosses.filter((b) => b.is_event && !b.is_super);
-    } else if (sub === 'super') {
-      filteredBosses = filteredBosses.filter((b) => b.is_super);
-    }
-
-    const query = String(focused.value || '').toLowerCase();
-    const choices = filteredBosses
-      .filter((b) => {
-        const label = `${b.display_name}`.toLowerCase();
-        return !query || label.includes(query);
-      })
-      .slice(0, 25)
-      .map((b) => ({
-        name: b.display_name,
-        value: b.boss_key
-      }));
-
-    await interaction.respond(choices);
-    return;
-  } catch (err) {
-    const code = Number(err?.code || 0);
-    if (code === 40060 || code === 10062) {
-      return;
-    }
-    throw err;
-  }
-}
-
-module.exports = { data, execute, autocomplete };
+module.exports = { data, execute };
