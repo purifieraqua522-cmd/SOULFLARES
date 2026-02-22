@@ -5,6 +5,7 @@ const envSchema = z.object({
   DISCORD_CLIENT_ID: z.string().min(1),
   DISCORD_GUILD_ID: z.string().min(1).optional(),
   BOT_OWNER_ID: z.string().min(1),
+  BOT_OWNER_IDS: z.string().optional(),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DEFAULT_TIMEZONE: z.string().default('Europe/Berlin'),

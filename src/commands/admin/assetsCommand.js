@@ -8,7 +8,10 @@ const data = new SlashCommandBuilder()
 
 async function execute(interaction, ctx) {
   try {
-    if (interaction.user.id !== ctx.env.BOT_OWNER_ID) {
+    const ownerIds = new Set(
+      [ctx.env.BOT_OWNER_ID, ...(ctx.env.BOT_OWNER_IDS || '').split(',').map((x) => x.trim())].filter(Boolean)
+    );
+    if (!ownerIds.has(interaction.user.id)) {
       return replyError(interaction, 'Only the bot owner can use this command.');
     }
 
