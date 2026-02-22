@@ -24,7 +24,7 @@ const data = new SlashCommandBuilder()
 async function execute(interaction, ctx) {
   try {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return replyError(interaction, 'Nur Admins dürfen diesen Command nutzen.');
+      return replyError(interaction, 'Only server admins can use this command.');
     }
 
     const user = interaction.options.getUser('user', true);
@@ -33,10 +33,10 @@ async function execute(interaction, ctx) {
     const currency = animes[anime].currency;
 
     const next = await ctx.repos.addCurrency(user.id, currency, amount);
-    return replySuccess(interaction, 'Currency hinzugefügt', [
+    return replySuccess(interaction, 'Currency Added', [
       `User: <@${user.id}>`,
-      `Währung: **${currency}**`,
-      `Neu: **${next}**`
+      `Currency: **${currency}**`,
+      `New Balance: **${next}**`
     ]);
   } catch (error) {
     return replyError(interaction, error.message || 'addcurrency failed');

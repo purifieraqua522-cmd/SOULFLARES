@@ -44,7 +44,7 @@ async function execute(interaction, ctx) {
       const anime = interaction.options.getString('anime', true);
       const difficulty = interaction.options.getString('difficulty', true);
       const raid = await ctx.raidService.startRaid(userId, anime, difficulty);
-      return replySuccess(interaction, 'Raid erstellt', [
+      return replySuccess(interaction, 'Raid Created', [
         `Raid ID: \`${raid.id}\``,
         `Anime: **${raid.anime}**`,
         `Difficulty: **${raid.difficulty}**`,
@@ -55,9 +55,9 @@ async function execute(interaction, ctx) {
     if (sub === 'join') {
       const raidId = interaction.options.getString('raid_id', true);
       const raid = await ctx.raidService.joinRaid(userId, raidId);
-      return replySuccess(interaction, 'Raid beigetreten', [
+      return replySuccess(interaction, 'Raid Joined', [
         `Raid ID: \`${raid.id}\``,
-        `Mitglieder: **${raid.members.length}**`,
+        `Members: **${raid.members.length}**`,
         `Status: **${raid.state}**`
       ]);
     }

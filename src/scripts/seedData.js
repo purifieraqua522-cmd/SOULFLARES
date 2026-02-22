@@ -8,9 +8,14 @@ const { cards, materials, bosses, fusions, storeItems } = require('../data/seedD
 async function run() {
   const env = loadEnv();
   const db = createDb(env);
+  const normalizedCards = cards.map((card) => ({
+    secret: false,
+    fusion_only: false,
+    ...card
+  }));
 
   const upserts = [
-    db.from('cards').upsert(cards, { onConflict: 'key' }),
+    db.from('cards').upsert(normalizedCards, { onConflict: 'key' }),
     db.from('materials').upsert(materials, { onConflict: 'material_key' }),
     db.from('bosses').upsert(bosses, { onConflict: 'boss_key' }),
     db.from('fusions').upsert(fusions, { onConflict: 'fusion_key' }),

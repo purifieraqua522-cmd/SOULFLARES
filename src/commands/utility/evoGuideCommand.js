@@ -5,9 +5,9 @@ const data = new SlashCommandBuilder().setName('evo').setDescription('Evolution 
 
 async function execute(interaction) {
   return replySuccess(interaction, 'Evolution Guide', [
-    '- Tier Struktur: Epic -> Legendary -> Mythical',
-    '- Für jede Evolution brauchst du Währung + Material',
-    '- Merge ist erst bei max Evolution möglich'
+    '- Tier structure: Epic -> Legendary -> Mythical',
+    '- Each evolution needs currency + materials',
+    '- Merge is only available at max evolution'
   ]);
 }
 

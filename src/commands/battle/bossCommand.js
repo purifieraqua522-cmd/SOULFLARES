@@ -34,11 +34,11 @@ async function execute(interaction, ctx) {
   try {
     if (sub === 'list') {
       const bosses = await ctx.repos.getOpenBosses();
-      if (!bosses.length) return replySuccess(interaction, 'Boss Liste', ['Keine aktiven Bosse.']);
+      if (!bosses.length) return replySuccess(interaction, 'Boss List', ['No active bosses.']);
 
       return replySuccess(
         interaction,
-        'Aktive Bosse',
+        'Active Bosses',
         bosses.slice(0, 10).map((b) => `ID: \`${b.id}\` | ${b.boss_key} | HP: ${b.hp_current}/${b.hp_max} | ${b.state}`)
       );
     }
@@ -54,10 +54,10 @@ async function execute(interaction, ctx) {
 
       if (!ids.includes(userId)) ids.push(userId);
       const updated = await ctx.bossService.voteAndStart(bossId, difficulty, ids);
-      return replySuccess(interaction, 'Boss gestartet', [
+      return replySuccess(interaction, 'Boss Started', [
         `Boss ID: \`${updated.id}\``,
         `Difficulty: **${difficulty}**`,
-        `Teilnehmer: **${ids.length}**`
+        `Participants: **${ids.length}**`
       ]);
     }
 
@@ -66,13 +66,13 @@ async function execute(interaction, ctx) {
       const cardKey = interaction.options.getString('card_key', true);
       const card = await ctx.repos.getCardByKey(cardKey);
       const owned = await ctx.repos.getUserCard(userId, cardKey);
-      if (!card || !owned) return replyError(interaction, 'Card nicht gefunden oder nicht im Besitz.');
+      if (!card || !owned) return replyError(interaction, 'Card not found or not owned.');
 
       const power = Math.floor(card.base_power * (1 + owned.ascension * 0.1) * (1 + owned.card_level * 0.02));
       const result = await ctx.bossService.attackBoss(userId, bossId, power);
 
-      return replySuccess(interaction, 'Boss Attacke', [
-        `Schaden: **${result.damage}**`,
+      return replySuccess(interaction, 'Boss Attack', [
+        `Damage: **${result.damage}**`,
         `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
         `Status: **${result.updated.state}**`
       ]);

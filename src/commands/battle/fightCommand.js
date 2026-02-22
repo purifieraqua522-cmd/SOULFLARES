@@ -11,7 +11,7 @@ async function execute(interaction, ctx) {
   try {
     const target = interaction.options.getUser('target', true);
     const stake = interaction.options.getInteger('stake') || 0;
-    if (target.id === interaction.user.id) return replyError(interaction, 'Selbstkampf ist nicht erlaubt.');
+    if (target.id === interaction.user.id) return replyError(interaction, 'You cannot fight yourself.');
 
     const myCards = await ctx.repos.getUserCards(interaction.user.id);
     const theirCards = await ctx.repos.getUserCards(target.id);
@@ -23,10 +23,10 @@ async function execute(interaction, ctx) {
     const winner = rollA >= rollB ? interaction.user : target;
 
     return replySuccess(interaction, 'Fight Result', [
-      `Duell: **${interaction.user.username} vs ${target.username}**`,
+      `Duel: **${interaction.user.username} vs ${target.username}**`,
       `Score: **${rollA} - ${rollB}**`,
       `Winner: **${winner.username}**`,
-      `Stake: **${stake}** (manuell auszahlbar)`
+      `Stake: **${stake}** (manual payout)`
     ]);
   } catch (error) {
     return replyError(interaction, error.message || 'Fight failed');

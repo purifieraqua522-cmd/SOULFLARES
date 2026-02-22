@@ -21,14 +21,14 @@ const data = new SlashCommandBuilder()
 async function execute(interaction, ctx) {
   try {
     if (interaction.user.id !== ctx.env.BOT_OWNER_ID) {
-      return replyError(interaction, 'Nur Owner erlaubt.');
+      return replyError(interaction, 'Only the bot owner can use this command.');
     }
 
     const anime = interaction.options.getString('anime', true);
     const isSuper = interaction.options.getBoolean('super', true);
     const boss = await ctx.bossService.spawnScheduledBoss({ anime, isSuper });
 
-    return replySuccess(interaction, 'Boss gespawnt', [`ID: \`${boss.id}\``, `Boss Key: **${boss.boss_key}**`]);
+    return replySuccess(interaction, 'Boss Spawned', [`ID: \`${boss.id}\``, `Boss Key: **${boss.boss_key}**`]);
   } catch (error) {
     return replyError(interaction, error.message || 'spawnboss failed');
   }

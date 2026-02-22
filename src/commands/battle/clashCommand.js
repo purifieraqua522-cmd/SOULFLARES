@@ -25,7 +25,7 @@ async function execute(interaction, ctx) {
     const target = interaction.options.getUser('target', true);
     const anime = interaction.options.getString('anime', true);
     const amount = interaction.options.getInteger('amount', true);
-    if (target.id === interaction.user.id) return replyError(interaction, 'Eigenes Konto kann nicht geclashed werden.');
+    if (target.id === interaction.user.id) return replyError(interaction, 'You cannot clash your own account.');
 
     const currency = animes[anime].currency;
     await ctx.repos.spendCurrency(interaction.user.id, currency, amount);
@@ -35,19 +35,19 @@ async function execute(interaction, ctx) {
       const payout = Math.floor(amount * 1.9);
       const balance = await ctx.repos.addCurrency(interaction.user.id, currency, payout);
       return replySuccess(interaction, 'Clash Win', [
-        `Währung: **${currency}**`,
-        `Gewinn: **${payout}**`,
-        `Kontostand: **${balance}**`,
-        `Gegner: **${target.username}**`
+        `Currency: **${currency}**`,
+        `Won: **${payout}**`,
+        `Balance: **${balance}**`,
+        `Opponent: **${target.username}**`
       ]);
     }
 
     const balance = (await ctx.repos.getWallet(interaction.user.id))[currency];
     return replySuccess(interaction, 'Clash Lost', [
-      `Währung: **${currency}**`,
-      `Verloren: **${amount}**`,
-      `Kontostand: **${balance}**`,
-      `Gegner: **${target.username}**`
+      `Currency: **${currency}**`,
+      `Lost: **${amount}**`,
+      `Balance: **${balance}**`,
+      `Opponent: **${target.username}**`
     ]);
   } catch (error) {
     return replyError(interaction, error.message || 'Clash failed');

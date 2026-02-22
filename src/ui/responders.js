@@ -30,7 +30,7 @@ async function replyError(interaction, message) {
 
   const embed = new EmbedBuilder().setColor('#ff4d4f').setTitle('SOULFALRES Error').setDescription(message);
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('err_ack').setLabel('Verstanden').setStyle(ButtonStyle.Secondary).setDisabled(true)
+    new ButtonBuilder().setCustomId('err_ack').setLabel('Acknowledged').setStyle(ButtonStyle.Secondary).setDisabled(true)
   );
   return interaction.reply({ ephemeral: true, embeds: [embed], components: [row] });
 }

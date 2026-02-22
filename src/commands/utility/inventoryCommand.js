@@ -30,10 +30,10 @@ async function execute(interaction, ctx) {
 
     const cardLines = filtered.length
       ? filtered.slice(0, 12).map((x) => `- ${x.card.display_name} x${x.owner.copies} | Lvl ${x.owner.card_level} | Asc +${x.owner.ascension}`)
-      : ['- Keine Karten'];
+      : ['- No cards'];
     const matLines = materials.length
       ? materials.slice(0, 8).map((m) => `- ${m.material_key}: ${m.qty}`)
-      : ['- Keine Materialien'];
+      : ['- No materials'];
 
     return replySuccess(interaction, 'Inventory', ['**Cards**', ...cardLines, '**Materials**', ...matLines]);
   } catch (error) {

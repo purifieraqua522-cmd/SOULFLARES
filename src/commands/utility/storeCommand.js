@@ -28,7 +28,7 @@ async function execute(interaction, ctx) {
     if (sub === 'view') {
       const anime = interaction.options.getString('anime');
       const items = await ctx.storeService.list(anime);
-      if (!items.length) return replySuccess(interaction, 'Store', ['Keine Items gefunden.']);
+      if (!items.length) return replySuccess(interaction, 'Store', ['No items found.']);
       return replySuccess(
         interaction,
         'Store Items',
@@ -39,9 +39,9 @@ async function execute(interaction, ctx) {
     if (sub === 'buy') {
       const itemKey = interaction.options.getString('item_key', true);
       const item = await ctx.storeService.buy(interaction.user.id, itemKey);
-      return replySuccess(interaction, 'Einkauf Erfolgreich', [
+      return replySuccess(interaction, 'Purchase Complete', [
         `Item: **${item.display_name}**`,
-        `Preis: **${item.price_amount} ${item.price_currency}**`
+        `Price: **${item.price_amount} ${item.price_currency}**`
       ]);
     }
   } catch (error) {

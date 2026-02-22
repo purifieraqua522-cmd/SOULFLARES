@@ -6,8 +6,8 @@ const data = new SlashCommandBuilder().setName('gear').setDescription('Gear help
 async function execute(interaction) {
   return replySuccess(interaction, 'Gear Guide', [
     '- Gear slots: Weapon, Artifact, Relic',
-    '- Gear droppt in Bossen und Raids',
-    '- Höhere Seltenheit = bessere Stat-Multipliers'
+    '- Gear drops from bosses and raids',
+    '- Higher rarity gives stronger stat multipliers'
   ]);
 }
 

@@ -157,7 +157,7 @@ for each row execute function set_updated_at();
 create trigger user_cards_updated_at before update on user_cards
 for each row execute function set_updated_at();
 
--- Seed anime setup
+
 insert into anime_config (anime, summon_name, currency, evolve_material_key, boss_rotation, super_boss_key)
 values
   ('onepiece', 'Pirate Packs', 'berries', 'op_evo_frag', array['kizaru','mihawk','aokiji'], 'kaido'),

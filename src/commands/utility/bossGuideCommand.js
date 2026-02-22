@@ -5,10 +5,10 @@ const data = new SlashCommandBuilder().setName('bossguide').setDescription('Boss
 
 async function execute(interaction) {
   return replySuccess(interaction, 'Boss Guide', [
-    '- Normal Boss Spawn: jede volle Stunde',
-    '- Super Boss Spawn: alle 2 Stunden',
+    '- Normal boss spawn: every full hour',
+    '- Super boss spawn: every 2 hours',
     '- Difficulty: Easy / Hard / Nightmare',
-    '- Start braucht mindestens 3 Spieler'
+    '- Boss start requires at least 3 players'
   ]);
 }
 

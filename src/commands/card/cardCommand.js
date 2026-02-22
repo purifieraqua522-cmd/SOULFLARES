@@ -35,7 +35,7 @@ async function execute(interaction, ctx) {
       const cardKey = interaction.options.getString('card_key', true);
       const card = await ctx.repos.getCardByKey(cardKey);
       const userCard = await ctx.repos.getUserCard(userId, cardKey);
-      if (!card || !userCard) return replyError(interaction, 'Card nicht im Inventar gefunden.');
+      if (!card || !userCard) return replyError(interaction, 'Card not found in your inventory.');
 
       const power = calcCardPower(card, userCard);
       const png = await ctx.pngService.generateCardPng({
@@ -53,7 +53,7 @@ async function execute(interaction, ctx) {
       const cardKey = interaction.options.getString('card_key', true);
       const card = await ctx.repos.getCardByKey(cardKey);
       const owned = await ctx.repos.getUserCard(userId, cardKey);
-      if (!card) return replyError(interaction, 'Card key unbekannt.');
+      if (!card) return replyError(interaction, 'Unknown card key.');
 
       return replySuccess(interaction, `Card Info: ${card.display_name}`, [
         `Anime: **${card.anime}**`,
@@ -67,17 +67,17 @@ async function execute(interaction, ctx) {
     if (sub === 'evolve') {
       const cardKey = interaction.options.getString('card_key', true);
       const result = await ctx.cardService.evolve(userId, cardKey);
-      return replySuccess(interaction, 'Evolution Erfolgreich', [
-        `Von: **${result.from.display_name}**`,
-        `Zu: **${result.to.display_name}**`,
-        `Kostenwährung: **${result.currency}**`
+      return replySuccess(interaction, 'Evolution Complete', [
+        `From: **${result.from.display_name}**`,
+        `To: **${result.to.display_name}**`,
+        `Currency Used: **${result.currency}**`
       ]);
     }
 
     if (sub === 'merge') {
       const cardKey = interaction.options.getString('card_key', true);
       const result = await ctx.cardService.merge(userId, cardKey);
-      return replySuccess(interaction, 'Merge Erfolgreich', [
+      return replySuccess(interaction, 'Merge Complete', [
         `Card: **${result.card.display_name}**`,
         `Ascension: **+${result.ascension}**`
       ]);
@@ -86,18 +86,18 @@ async function execute(interaction, ctx) {
     if (sub === 'fuse') {
       const fusionKey = interaction.options.getString('fusion_key', true);
       const result = await ctx.cardService.fuse(userId, fusionKey);
-      return replySuccess(interaction, 'Fusion Erfolgreich', [
+      return replySuccess(interaction, 'Fusion Complete', [
         `Fusion: **${result.fusionKey}**`,
-        `Ergebnis-Card-Key: **${result.resultCardKey}**`
+        `Result Card Key: **${result.resultCardKey}**`
       ]);
     }
 
     if (sub === 'sacrifice') {
       const cardKey = interaction.options.getString('card_key', true);
       const result = await ctx.cardService.sacrifice(userId, cardKey);
-      return replySuccess(interaction, 'Card geopfert', [
+      return replySuccess(interaction, 'Card Sacrificed', [
         `Reward: **${result.payout} ${result.currency}**`,
-        `Neuer Kontostand: **${result.balance}**`
+        `New Balance: **${result.balance}**`
       ]);
     }
   } catch (error) {
