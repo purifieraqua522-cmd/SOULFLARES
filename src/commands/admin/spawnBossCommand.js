@@ -5,12 +5,12 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  MessageFlags,
-  AttachmentBuilder
+  MessageFlags
 } = require('discord.js');
 const { replyError } = require('../../ui/responders');
 const { animes } = require('../../data/constants');
 const { isOwnerOrAdmin } = require('../../core/owners');
+const { buildBossSpawnPayload } = require('../../ui/bossAnnouncement');
 
 const TYPE_OPTIONS = [
   { label: 'Normal', value: 'normal' },
@@ -200,21 +200,23 @@ async function execute(interaction, ctx) {
           await i.deferUpdate();
           const result = await ctx.bossService.spawnSpecificBoss(state.bossKey);
           const { activeBoss, spawnPng } = result;
+          const spawnPayload = buildBossSpawnPayload(activeBoss, spawnPng);
+
+          if (!interaction.channel) {
+            throw new Error('Spawn channel not found.');
+          }
+
+          await interaction.channel.send(spawnPayload);
 
           const doneView = buildView(state, catalog, true);
           const successEmbed = new EmbedBuilder()
             .setColor('#16a34a')
-            .setTitle('Boss Spawned')
+            .setTitle('Boss Spawned And Posted')
             .setDescription(
-              `Type: **${state.type.toUpperCase()}**\nAnime: **${animes[state.anime]?.label || state.anime}**\nBoss: **${selected.display_name}**\nHP: **${activeBoss.hp_current}/${activeBoss.hp_max}**`
+              `Type: **${state.type.toUpperCase()}**\nAnime: **${animes[state.anime]?.label || state.anime}**\nBoss: **${selected.display_name}**\nHP: **${activeBoss.hp_current}/${activeBoss.hp_max}**\n\nA new spawn message with PNG + Join button was posted in this channel.`
             );
 
-          if (spawnPng) {
-            const file = new AttachmentBuilder(spawnPng, { name: `boss_spawn_${activeBoss.boss_key}.png` });
-            await interaction.editReply({ embeds: [successEmbed], components: doneView.components, files: [file] });
-          } else {
-            await interaction.editReply({ embeds: [successEmbed], components: doneView.components, files: [] });
-          }
+          await interaction.editReply({ embeds: [successEmbed], components: doneView.components, files: [] });
 
           collector.stop('spawned');
         }

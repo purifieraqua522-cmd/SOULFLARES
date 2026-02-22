@@ -27,6 +27,7 @@ const { registerFonts } = require('./core/fonts');
 const pngService = require('./services/pngService');
 const { replyError } = require('./ui/responders');
 const { buildOwnerSet } = require('./core/owners');
+const { buildBossSpawnPayload } = require('./ui/bossAnnouncement');
 
 async function deployCommands(env) {
   const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
@@ -93,6 +94,26 @@ async function main() {
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
+    // Handle Join button clicks for boss spawns
+    if (interaction.isButton()) {
+      try {
+        const cid = interaction.customId || '';
+        if (cid.startsWith('boss_join:')) {
+          const bossId = cid.split(':')[1];
+          await interaction.deferUpdate();
+          try {
+            const res = await ctx.bossService.joinActiveBoss(interaction.user.id, bossId);
+            const payload = buildBossSpawnPayload(res.updated, res.spawnPng);
+            await interaction.message.edit(payload);
+          } catch (err) {
+            await interaction.followUp({ content: `Could not join boss: ${err.message}`, ephemeral: true });
+          }
+          return;
+        }
+      } catch (err) {
+        // swallow
+      }
+    }
     if (interaction.isAutocomplete()) {
       const module = commandMap.get(interaction.commandName);
       if (!module?.autocomplete) return;

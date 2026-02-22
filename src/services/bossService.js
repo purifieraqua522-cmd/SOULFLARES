@@ -39,7 +39,15 @@ function createBossService(repos, bossRenderService) {
       }
     }
 
-    return { activeBoss, spawnPng };
+    const enrichedBoss = {
+      ...activeBoss,
+      anime: boss.anime,
+      display_name: boss.display_name,
+      is_super: boss.is_super || false,
+      is_event: boss.is_event || false
+    };
+
+    return { activeBoss: enrichedBoss, spawnPng };
   }
 
   return {
@@ -97,6 +105,48 @@ function createBossService(repos, bossRenderService) {
 
       const updated = await repos.updateBoss(boss.id, { hp_current: hp, participants, state });
       return { updated, damage, defeated: hp === 0 };
+    }
+,
+
+    async joinActiveBoss(userId, bossId) {
+      // fetch boss
+      const boss = await repos.getActiveBossById(bossId);
+      if (!boss) throw new Error('Boss not found');
+      if (boss.state !== 'open' && boss.state !== 'active') throw new Error('Boss not joinable');
+
+      const participants = Array.isArray(boss.participants) ? boss.participants.slice() : [];
+      if (!participants.includes(userId)) participants.push(userId);
+
+      const updated = await repos.updateBoss(boss.id, { participants });
+      const bossMeta = await repos.getBossByKey(boss.boss_key);
+      const enrichedBoss = {
+        ...updated,
+        anime: bossMeta?.anime || boss.anime,
+        display_name: bossMeta?.display_name || boss.display_name || boss.boss_key,
+        is_super: Boolean(bossMeta?.is_super),
+        is_event: Boolean(bossMeta?.is_event)
+      };
+
+      // regenerate spawn PNG if render service available
+      let spawnPng = null;
+      if (bossRenderService) {
+        try {
+          spawnPng = await bossRenderService.generateBossSpawnPng({
+            bossName: enrichedBoss.display_name,
+            bossKey: boss.boss_key,
+            anime: enrichedBoss.anime,
+            difficulty: enrichedBoss.difficulty || 'easy',
+            hpMax: enrichedBoss.hp_max || enrichedBoss.hp_current,
+            isSuper: enrichedBoss.is_super || false,
+            isEvent: enrichedBoss.is_event || false,
+            participants: participants
+          });
+        } catch (err) {
+          console.warn('Failed to regenerate spawn PNG on join:', err.message);
+        }
+      }
+
+      return { updated: enrichedBoss, spawnPng };
     }
   };
 }
