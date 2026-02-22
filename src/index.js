@@ -97,7 +97,8 @@ async function main() {
         await module.autocomplete(interaction, ctx);
       } catch (error) {
         const msg = String(error?.message || '');
-        if (!msg.includes('Unknown interaction')) {
+        const code = Number(error?.code || 0);
+        if (!msg.includes('Unknown interaction') && code !== 40060 && code !== 10062) {
           logWarn('Autocomplete failed', { command: interaction.commandName, error: msg });
         }
       }

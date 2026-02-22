@@ -136,12 +136,15 @@ async function execute(interaction, ctx) {
 async function autocomplete(interaction, ctx) {
   try {
     const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'boss') return interaction.respond([]);
+    if (focused.name !== 'boss') return;
 
     const sub = interaction.options.getSubcommand();
     const anime = interaction.options.getString('anime');
 
-    if (!anime) return interaction.respond([]);
+    if (!anime) {
+      await interaction.respond([]);
+      return;
+    }
 
     // Use a cached boss list if available, otherwise fetch from DB
     const allBosses = await Promise.race([
@@ -149,7 +152,10 @@ async function autocomplete(interaction, ctx) {
       new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2500))
     ]).catch(() => []);
 
-    if (!allBosses.length) return interaction.respond([]);
+    if (!allBosses.length) {
+      await interaction.respond([]);
+      return;
+    }
 
     let filteredBosses = allBosses.filter((b) => b.anime === anime);
 
@@ -173,14 +179,14 @@ async function autocomplete(interaction, ctx) {
         value: b.boss_key
       }));
 
-    return interaction.respond(choices);
+    await interaction.respond(choices);
+    return;
   } catch (err) {
-    // Silently fail and return empty suggestions to prevent timeout errors
-    try {
-      return interaction.respond([]);
-    } catch {
-      // Already responded or interaction expired
+    const code = Number(err?.code || 0);
+    if (code === 40060 || code === 10062) {
+      return;
     }
+    throw err;
   }
 }
 
