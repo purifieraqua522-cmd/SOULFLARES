@@ -9,14 +9,14 @@ const data = new SlashCommandBuilder()
     s
       .setName('attack')
       .setDescription('Attack boss with one card')
-      .addStringOption((o) => o.setName('boss_id').setDescription('Boss ID').setRequired(true))
+      .addStringOption((o) => o.setName('boss_id').setDescription('Choose active boss').setRequired(true).setAutocomplete(true))
       .addStringOption((o) => o.setName('card_key').setDescription('Your card key').setRequired(true))
   )
   .addSubcommand((s) =>
     s
       .setName('vote')
       .setDescription('Vote/start with difficulty (min 3 players)')
-      .addStringOption((o) => o.setName('boss_id').setDescription('Boss ID').setRequired(true))
+      .addStringOption((o) => o.setName('boss_id').setDescription('Choose active boss').setRequired(true).setAutocomplete(true))
       .addStringOption((o) =>
         o
           .setName('difficulty')
@@ -111,4 +111,35 @@ async function execute(interaction, ctx) {
   }
 }
 
-module.exports = { data, execute };
+async function autocomplete(interaction, ctx) {
+  try {
+    const focused = interaction.options.getFocused(true);
+    if (focused.name !== 'boss_id') return interaction.respond([]);
+
+    const query = String(focused.value || '').toLowerCase();
+    const bosses = await ctx.repos.getOpenBosses();
+    const withMeta = await Promise.all(
+      bosses.map(async (b) => ({
+        row: b,
+        meta: await ctx.repos.getBossByKey(b.boss_key)
+      }))
+    );
+
+    const choices = withMeta
+      .filter((x) => {
+        const label = `${x.meta?.display_name || x.row.boss_key} ${x.row.boss_key} ${x.row.id}`.toLowerCase();
+        return !query || label.includes(query);
+      })
+      .slice(0, 25)
+      .map((x) => ({
+        name: `${x.meta?.display_name || x.row.boss_key} | ${x.row.difficulty} | HP ${x.row.hp_current}/${x.row.hp_max}`,
+        value: x.row.id
+      }));
+
+    return interaction.respond(choices);
+  } catch {
+    return interaction.respond([]);
+  }
+}
+
+module.exports = { data, execute, autocomplete };

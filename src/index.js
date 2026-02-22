@@ -86,6 +86,17 @@ async function main() {
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
+    if (interaction.isAutocomplete()) {
+      const module = commandMap.get(interaction.commandName);
+      if (!module?.autocomplete) return;
+      try {
+        await module.autocomplete(interaction, ctx);
+      } catch (error) {
+        logWarn('Autocomplete failed', { command: interaction.commandName, error: error.message });
+      }
+      return;
+    }
+
     if (!interaction.isChatInputCommand()) return;
 
     const module = commandMap.get(interaction.commandName);

@@ -32,7 +32,7 @@ const data = new SlashCommandBuilder()
     s
       .setName('join')
       .setDescription('Join raid lobby')
-      .addStringOption((o) => o.setName('raid_id').setDescription('Raid ID').setRequired(true))
+      .addStringOption((o) => o.setName('raid_id').setDescription('Choose raid').setRequired(true).setAutocomplete(true))
   );
 
 async function execute(interaction, ctx) {
@@ -66,4 +66,28 @@ async function execute(interaction, ctx) {
   }
 }
 
-module.exports = { data, execute };
+async function autocomplete(interaction, ctx) {
+  try {
+    const focused = interaction.options.getFocused(true);
+    if (focused.name !== 'raid_id') return interaction.respond([]);
+
+    const query = String(focused.value || '').toLowerCase();
+    const raids = await ctx.repos.getJoinableRaids();
+    const choices = raids
+      .filter((r) => {
+        const label = `${r.id} ${r.anime} ${r.difficulty} ${r.state}`.toLowerCase();
+        return !query || label.includes(query);
+      })
+      .slice(0, 25)
+      .map((r) => ({
+        name: `${r.anime.toUpperCase()} | ${r.difficulty} | members ${(r.members || []).length} | ${r.state}`,
+        value: r.id
+      }));
+
+    return interaction.respond(choices);
+  } catch {
+    return interaction.respond([]);
+  }
+}
+
+module.exports = { data, execute, autocomplete };

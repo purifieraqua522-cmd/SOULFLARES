@@ -195,6 +195,13 @@ function createRepositories(db) {
       return rows[0] || null;
     },
 
+    async getJoinableRaids() {
+      return safeDb(
+        db.from('raids').select('*').or('state.eq.lobby,state.eq.active').order('created_at', { ascending: false }).limit(25),
+        'getJoinableRaids'
+      );
+    },
+
     async updateRaid(raidId, patch) {
       const rows = await safeDb(db.from('raids').update(patch).eq('id', raidId).select('*'), 'updateRaid');
       return rows[0] || null;
