@@ -1,0 +1,21 @@
+﻿{
+  "name": "soulfalres-bot",
+  "version": "1.0.0",
+  "description": "SOULFALRES Discord Anime Card Game Bot",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy:commands": "node src/scripts/deployCommands.js",
+    "seed": "node src/scripts/seedData.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.58",
+    "@supabase/supabase-js": "^2.49.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "node-cron": "^4.0.7",
+    "zod": "^3.24.2"
+  }
+}
