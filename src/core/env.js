@@ -7,7 +7,9 @@ const envSchema = z.object({
   BOT_OWNER_ID: z.string().min(1),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  DEFAULT_TIMEZONE: z.string().default('Europe/Berlin')
+  DEFAULT_TIMEZONE: z.string().default('Europe/Berlin'),
+  FONT_PATHS: z.string().optional(),
+  PRIMARY_FONT_FAMILY: z.string().optional()
 });
 
 function loadEnv() {

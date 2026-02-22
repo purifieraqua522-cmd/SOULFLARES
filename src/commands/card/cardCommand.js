@@ -6,7 +6,11 @@ const data = new SlashCommandBuilder()
   .setName('card')
   .setDescription('Card management')
   .addSubcommand((s) =>
-    s.setName('view').setDescription('Render card as PNG').addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+    s
+      .setName('view')
+      .setDescription('Render card as PNG')
+      .addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+      .addStringOption((o) => o.setName('custom_name').setDescription('Optional custom display name').setRequired(false))
   )
   .addSubcommand((s) =>
     s.setName('info').setDescription('Card detail').addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
@@ -33,16 +37,21 @@ async function execute(interaction, ctx) {
 
     if (sub === 'view') {
       const cardKey = interaction.options.getString('card_key', true);
+      const customName = interaction.options.getString('custom_name');
       const card = await ctx.repos.getCardByKey(cardKey);
       const userCard = await ctx.repos.getUserCard(userId, cardKey);
       if (!card || !userCard) return replyError(interaction, 'Card not found in your inventory.');
 
       const power = calcCardPower(card, userCard);
+      const imagePath = ctx.assetsService.getCardImagePath(cardKey);
       const png = await ctx.pngService.generateCardPng({
         card,
         ownerTag: interaction.user.tag,
         power,
-        ascension: userCard.ascension
+        ascension: userCard.ascension,
+        customName,
+        imagePath,
+        fontFamily: ctx.primaryFontFamily
       });
 
       const file = new AttachmentBuilder(png, { name: `${card.key}.png` });

@@ -4,10 +4,14 @@ dotenv.config();
 const { loadEnv } = require('../core/env');
 const { createDb } = require('../core/db');
 const { cards, materials, bosses, fusions, storeItems } = require('../data/seedData');
+const { createRepositories } = require('../data/repositories');
+const { createAssetsService } = require('../services/assetsService');
 
 async function run() {
   const env = loadEnv();
   const db = createDb(env);
+  const repos = createRepositories(db);
+  const assetsService = createAssetsService(repos);
   const normalizedCards = cards.map((card) => ({
     secret: false,
     fusion_only: false,
@@ -27,6 +31,7 @@ async function run() {
     if (error) throw error;
   }
 
+  await assetsService.syncCardsFromAssets();
   console.log('Seed complete.');
 }
 

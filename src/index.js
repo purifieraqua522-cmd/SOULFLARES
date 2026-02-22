@@ -21,6 +21,8 @@ const { createCardService } = require('./services/cardService');
 const { createBossService } = require('./services/bossService');
 const { createRaidService } = require('./services/raidService');
 const { createStoreService } = require('./services/storeService');
+const { createAssetsService } = require('./services/assetsService');
+const { registerFonts } = require('./core/fonts');
 const pngService = require('./services/pngService');
 const { replyError } = require('./ui/responders');
 
@@ -43,12 +45,16 @@ async function main() {
   const env = loadEnv();
   const db = createDb(env);
   const repos = createRepositories(db);
+  const registeredFonts = registerFonts(env);
+  const primaryFontFamily = env.PRIMARY_FONT_FAMILY || registeredFonts[0]?.family || 'sans-serif';
 
   const summonService = createSummonService(repos);
   const cardService = createCardService(repos);
   const bossService = createBossService(repos);
   const raidService = createRaidService(repos);
   const storeService = createStoreService(repos);
+  const assetsService = createAssetsService(repos);
+  await assetsService.syncCardsFromAssets();
 
   const ctx = {
     env,
@@ -59,7 +65,9 @@ async function main() {
     bossService,
     raidService,
     storeService,
-    pngService
+    pngService,
+    assetsService,
+    primaryFontFamily
   };
 
   await deployCommands(env);

@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "deploy:commands": "node src/scripts/deployCommands.js",
-    "seed": "node src/scripts/seedData.js"
+    "seed": "node src/scripts/seedData.js",
+    "sync:assets": "node src/scripts/syncAssets.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.58",

@@ -15,6 +15,7 @@ const bossGuideCommand = require('./utility/bossGuideCommand');
 
 const addCurrencyCommand = require('./admin/addCurrencyCommand');
 const spawnBossCommand = require('./admin/spawnBossCommand');
+const assetsCommand = require('./admin/assetsCommand');
 
 const commandModules = [
   cardCommand,
@@ -30,7 +31,8 @@ const commandModules = [
   evoGuideCommand,
   bossGuideCommand,
   addCurrencyCommand,
-  spawnBossCommand
+  spawnBossCommand,
+  assetsCommand
 ];
 
 const commandMap = new Map(commandModules.map((mod) => [mod.data.name, mod]));

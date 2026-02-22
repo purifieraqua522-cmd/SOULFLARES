@@ -39,6 +39,11 @@ function createRepositories(db) {
       return safeDb(db.from('cards').select('*').eq('anime', anime), 'getCardsByAnime');
     },
 
+    async upsertCards(cards) {
+      if (!cards.length) return [];
+      return safeDb(db.from('cards').upsert(cards, { onConflict: 'key' }).select('*'), 'upsertCards');
+    },
+
     async getCardByKey(cardKey) {
       const rows = await safeDb(db.from('cards').select('*').eq('key', cardKey).limit(1), 'getCardByKey');
       return rows[0] || null;
@@ -158,6 +163,10 @@ function createRepositories(db) {
     async getBossByKey(bossKey) {
       const rows = await safeDb(db.from('bosses').select('*').eq('boss_key', bossKey).limit(1), 'getBossByKey');
       return rows[0] || null;
+    },
+
+    async getAllBosses() {
+      return safeDb(db.from('bosses').select('*').order('anime').order('is_super', { ascending: true }), 'getAllBosses');
     },
 
     async getAnimeConfig(anime) {

@@ -7,6 +7,20 @@ function calcDifficultyMod(difficulty) {
 }
 
 function createBossService(repos) {
+  async function spawnBossFromRow(boss) {
+    const hp = boss.hp_base;
+    const expiresAt = new Date(Date.now() + 55 * 60 * 1000).toISOString();
+    return repos.createActiveBoss({
+      boss_key: boss.boss_key,
+      difficulty: 'easy',
+      hp_current: hp,
+      hp_max: hp,
+      expires_at: expiresAt,
+      state: 'open',
+      participants: []
+    });
+  }
+
   return {
     async spawnScheduledBoss({ anime, isSuper = false }) {
       const info = animes[anime];
@@ -15,18 +29,17 @@ function createBossService(repos) {
       const bossKey = options[Math.floor(Math.random() * options.length)];
       const boss = await repos.getBossByKey(bossKey);
       if (!boss) throw new Error('Boss missing in DB');
+      return spawnBossFromRow(boss);
+    },
 
-      const hp = boss.hp_base;
-      const expiresAt = new Date(Date.now() + 55 * 60 * 1000).toISOString();
-      return repos.createActiveBoss({
-        boss_key: boss.boss_key,
-        difficulty: 'easy',
-        hp_current: hp,
-        hp_max: hp,
-        expires_at: expiresAt,
-        state: 'open',
-        participants: []
-      });
+    async spawnSpecificBoss(bossKey) {
+      const boss = await repos.getBossByKey(bossKey);
+      if (!boss) throw new Error(`Unknown boss key: ${bossKey}`);
+      return spawnBossFromRow(boss);
+    },
+
+    async listBossCatalog() {
+      return repos.getAllBosses();
     },
 
     async voteAndStart(bossId, difficulty, userIds) {

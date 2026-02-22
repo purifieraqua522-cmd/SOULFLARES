@@ -1,11 +1,5 @@
-﻿const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
-const path = require('path');
+﻿const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const fs = require('fs');
-
-const defaultFont = path.join(__dirname, '../../assets/Orbitron-Regular.ttf');
-if (fs.existsSync(defaultFont)) {
-  GlobalFonts.registerFromPath(defaultFont, 'Orbitron');
-}
 
 function rarityColor(rarity) {
   if (rarity === 'secret') return '#ff2e63';
@@ -14,7 +8,28 @@ function rarityColor(rarity) {
   return '#7f5af0';
 }
 
-async function generateCardPng({ card, ownerTag, power, ascension }) {
+async function drawCardArtwork(ctx, imagePath) {
+  if (!imagePath || !fs.existsSync(imagePath)) return;
+  const image = await loadImage(imagePath);
+
+  const artX = 470;
+  const artY = 40;
+  const artW = 390;
+  const artH = 420;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(artX, artY, artW, artH);
+  ctx.clip();
+  ctx.drawImage(image, artX, artY, artW, artH);
+  ctx.restore();
+
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(artX, artY, artW, artH);
+}
+
+async function generateCardPng({ card, ownerTag, power, ascension, customName, imagePath, fontFamily = 'sans-serif' }) {
   const canvas = createCanvas(900, 500);
   const ctx = canvas.getContext('2d');
 
@@ -27,11 +42,15 @@ async function generateCardPng({ card, ownerTag, power, ascension }) {
   ctx.fillStyle = rarityColor(card.rarity);
   ctx.fillRect(0, 0, 900, 12);
 
-  ctx.font = '700 44px Orbitron, sans-serif';
-  ctx.fillStyle = '#f9fafb';
-  ctx.fillText(card.display_name, 44, 84);
+  await drawCardArtwork(ctx, imagePath);
 
-  ctx.font = '500 26px Orbitron, sans-serif';
+  const title = customName?.trim() || card.display_name;
+
+  ctx.font = `700 44px ${fontFamily}, sans-serif`;
+  ctx.fillStyle = '#f9fafb';
+  ctx.fillText(title, 44, 84);
+
+  ctx.font = `500 26px ${fontFamily}, sans-serif`;
   ctx.fillStyle = '#93c5fd';
   ctx.fillText(`Anime: ${card.anime.toUpperCase()}`, 44, 132);
 
@@ -40,7 +59,7 @@ async function generateCardPng({ card, ownerTag, power, ascension }) {
   ctx.fillText(`Power: ${power}`, 44, 224);
   ctx.fillText(`Ascension: +${ascension}`, 44, 270);
 
-  ctx.font = '500 22px Orbitron, sans-serif';
+  ctx.font = `500 22px ${fontFamily}, sans-serif`;
   ctx.fillStyle = '#e5e7eb';
   ctx.fillText(`Owner: ${ownerTag}`, 44, 468);
 
