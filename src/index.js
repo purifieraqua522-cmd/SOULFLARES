@@ -26,6 +26,7 @@ const { createBossRenderService } = require('./services/bossRenderService');
 const { registerFonts } = require('./core/fonts');
 const pngService = require('./services/pngService');
 const { replyError } = require('./ui/responders');
+const { buildOwnerSet } = require('./core/owners');
 
 async function deployCommands(env) {
   const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
@@ -44,6 +45,7 @@ async function deployCommands(env) {
 
 async function main() {
   const env = loadEnv();
+  const ownerIds = [...buildOwnerSet(env)];
   const db = createDb(env);
   const repos = createRepositories(db);
   const fontSetup = registerFonts(env);
@@ -78,6 +80,7 @@ async function main() {
   };
 
   await deployCommands(env);
+  logInfo('Owner IDs loaded', { ownerIds });
 
   const client = new Client({
     intents: [GatewayIntentBits.Guilds],

@@ -11,7 +11,10 @@ async function execute(interaction, ctx) {
   try {
     const { isOwner, isAdmin } = isOwnerOrAdmin(interaction, ctx.env);
     if (!isOwner && !isAdmin) {
-      return replyError(interaction, 'Only the bot owner or an administrator can use this command.');
+      return replyError(
+        interaction,
+        `Owner/Admin check failed. Your ID: ${interaction.user.id} | Required owner: 795466540140986368`
+      );
     }
 
     const sub = interaction.options.getSubcommand();
