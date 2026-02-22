@@ -168,6 +168,10 @@ function buildPayload(state) {
 
 async function execute(interaction, ctx) {
   try {
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
+
     const allItems = await ctx.storeService.list();
     const itemsByAnime = {
       onepiece: allItems.filter((i) => ['onepiece', 'global'].includes(i.anime)),

@@ -112,18 +112,6 @@ async function main() {
     }
 
     try {
-      if (!interaction.deferred && !interaction.replied) {
-        try {
-          await interaction.deferReply();
-        } catch (ackErr) {
-          const ackCode = Number(ackErr?.code || 0);
-          if (ackCode === 10062 || ackCode === 40060) {
-            logWarn('Interaction ack timeout/already acknowledged', { command: interaction.commandName, code: ackCode });
-            return;
-          }
-          throw ackErr;
-        }
-      }
       await module.execute(interaction, ctx);
     } catch (error) {
       const code = Number(error?.code || 0);
