@@ -1,7 +1,43 @@
-﻿const { EmbedBuilder, MessageFlags } = require('discord.js');
+﻿const {
+  EmbedBuilder,
+  MessageFlags,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('discord.js');
+
+const ERROR_EMOJI = '<:soul_error:1475084001189429396>';
+
+function supportsV2() {
+  return typeof ContainerBuilder === 'function' && typeof TextDisplayBuilder === 'function';
+}
+
+function buildErrorV2(message) {
+  return new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`## ${ERROR_EMOJI} SOULFALRES Error`),
+      new TextDisplayBuilder().setContent(`- ${message}`)
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setSpacing(1));
+}
 
 async function replyError(interaction, message) {
-  const embed = new EmbedBuilder().setColor('#ef4444').setTitle('SOULFALRES Error').setDescription(message);
+  if (supportsV2()) {
+    const container = buildErrorV2(message);
+    if (interaction.deferred || interaction.replied) {
+      return interaction.editReply({ components: [container], embeds: [], content: '' });
+    }
+    return interaction.reply({
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+      components: [container]
+    });
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor('#ef4444')
+    .setTitle(`${ERROR_EMOJI} SOULFALRES Error`)
+    .setDescription(message);
+
   if (interaction.deferred || interaction.replied) {
     return interaction.editReply({ embeds: [embed] });
   }
