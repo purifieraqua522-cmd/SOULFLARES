@@ -1,4 +1,4 @@
-﻿const {
+const {
   SlashCommandBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
@@ -106,7 +106,7 @@ function buildV2Payload(state) {
   const lines = pageItems.length
     ? pageItems.map((item, idx) => {
         const num = currentPage * 5 + idx + 1;
-        const emoji = CURRENCY_EMOJI[item.price_currency] || '💰';
+        const emoji = CURRENCY_EMOJI[item.price_currency] || '??';
         const marker = selectedItemKey === item.item_key ? `${E.ok} ` : '';
         return `${marker}${num}. **${item.display_name}** - ${item.price_amount} ${emoji} (${item.price_currency})`;
       })
@@ -307,8 +307,7 @@ async function execute(interaction, ctx) {
         }
       } catch (err) {
         if (!i.replied && !i.deferred) {
-          const msg = `:XMark: SOULFALRES Error\\n${err.message || 'Store interaction failed.'}`;
-          await i.reply({ content: msg, flags: MessageFlags.Ephemeral });
+          await replyError(i, err.message || 'Store interaction failed.');
         }
       }
     });

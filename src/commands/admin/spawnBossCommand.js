@@ -1,6 +1,7 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const { replyError, replySuccess } = require('../../ui/responders');
 const { animes } = require('../../data/constants');
+const { isOwnerOrAdmin } = require('../../core/owners');
 
 const data = new SlashCommandBuilder()
   .setName('spawnboss')
@@ -63,11 +64,8 @@ const data = new SlashCommandBuilder()
 
 async function execute(interaction, ctx) {
   try {
-    const ownerIds = new Set(
-      [ctx.env.BOT_OWNER_ID, ...(ctx.env.BOT_OWNER_IDS || '').split(',').map((x) => x.trim())].filter(Boolean)
-    );
-    const isAdmin = Boolean(interaction.memberPermissions?.has(PermissionFlagsBits.Administrator));
-    if (!ownerIds.has(interaction.user.id) && !isAdmin) {
+    const { isOwner, isAdmin } = isOwnerOrAdmin(interaction, ctx.env);
+    if (!isOwner && !isAdmin) {
       return replyError(interaction, 'Only the bot owner or an administrator can use this command.');
     }
 

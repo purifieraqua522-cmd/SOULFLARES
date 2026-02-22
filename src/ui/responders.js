@@ -6,7 +6,7 @@
   SeparatorBuilder
 } = require('discord.js');
 
-const ERROR_EMOJI_TEXT = ':XMark:';
+const ERROR_EMOJI_TEXT = '<:XMark:1475084001189429396>';
 
 function supportsV2() {
   return typeof ContainerBuilder === 'function' && typeof TextDisplayBuilder === 'function';
