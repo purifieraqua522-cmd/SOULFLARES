@@ -33,13 +33,15 @@ async function execute(interaction, ctx) {
 
   try {
     if (sub === 'list') {
-      const bosses = await ctx.repos.getOpenBosses();
+      const bosses = await ctx.repos.getVisibleBosses();
       if (!bosses.length) return replySuccess(interaction, 'Boss List', ['No active bosses.']);
 
       return replySuccess(
         interaction,
         'Active Bosses',
-        bosses.slice(0, 10).map((b) => `ID: \`${b.id}\` | ${b.boss_key} | HP: ${b.hp_current}/${b.hp_max} | ${b.state}`)
+        bosses
+          .slice(0, 10)
+          .map((b) => `ID: \`${b.id}\` | ${b.boss_key} | HP: ${b.hp_current}/${b.hp_max} | ${b.state} | ${b.difficulty}`)
       );
     }
 
@@ -62,6 +64,8 @@ async function execute(interaction, ctx) {
     }
 
     if (sub === 'attack') {
+      await interaction.deferReply();
+
       const bossId = interaction.options.getString('boss_id', true);
       const cardKey = interaction.options.getString('card_key', true);
       const card = await ctx.repos.getCardByKey(cardKey);
@@ -88,7 +92,7 @@ async function execute(interaction, ctx) {
         });
 
         const file = new AttachmentBuilder(battlePng, { name: `boss_fight_${result.updated.id}.png` });
-        return interaction.reply({
+        return interaction.editReply({
           content: [
             `Boss: **${bossMeta?.display_name || result.updated.boss_key}**`,
             `Damage: **${result.damage}**`,
@@ -97,12 +101,12 @@ async function execute(interaction, ctx) {
           ].join('\n'),
           files: [file]
         });
-      } catch (renderError) {
+      } catch {
         return replySuccess(interaction, 'Boss Attack', [
           `Damage: **${result.damage}**`,
           `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
           `Status: **${result.updated.state}**`,
-          '`PNG render fallback used`'
+          'PNG rendering fallback used.'
         ]);
       }
     }
@@ -117,7 +121,7 @@ async function autocomplete(interaction, ctx) {
     if (focused.name !== 'boss_id') return interaction.respond([]);
 
     const query = String(focused.value || '').toLowerCase();
-    const bosses = await ctx.repos.getOpenBosses();
+    const bosses = await ctx.repos.getVisibleBosses();
     const withMeta = await Promise.all(
       bosses.map(async (b) => ({
         row: b,
@@ -132,7 +136,7 @@ async function autocomplete(interaction, ctx) {
       })
       .slice(0, 25)
       .map((x) => ({
-        name: `${x.meta?.display_name || x.row.boss_key} | ${x.row.difficulty} | HP ${x.row.hp_current}/${x.row.hp_max}`,
+        name: `${x.meta?.display_name || x.row.boss_key} | ${x.row.state} | HP ${x.row.hp_current}/${x.row.hp_max}`,
         value: x.row.id
       }));
 

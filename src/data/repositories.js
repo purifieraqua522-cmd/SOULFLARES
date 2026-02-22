@@ -155,6 +155,20 @@ function createRepositories(db) {
       return safeDb(db.from('active_bosses').select('*').eq('state', 'open'), 'getOpenBosses');
     },
 
+    async getVisibleBosses() {
+      return safeDb(
+        db.from('active_bosses').select('*').in('state', ['open', 'active']).order('spawned_at', { ascending: false }),
+        'getVisibleBosses'
+      );
+    },
+
+    async getAttackableBosses() {
+      return safeDb(
+        db.from('active_bosses').select('*').in('state', ['open', 'active']).order('spawned_at', { ascending: false }),
+        'getAttackableBosses'
+      );
+    },
+
     async updateBoss(id, patch) {
       const rows = await safeDb(db.from('active_bosses').update(patch).eq('id', id).select('*'), 'updateBoss');
       return rows[0] || null;

@@ -23,11 +23,11 @@ async function execute(interaction, ctx) {
     await ctx.repos.ensureProfile(interaction.user.id);
     const result = await ctx.summonService.summon(interaction.user.id, anime);
 
-    return replySuccess(interaction, 'Summon Ergebnis', [
+    return replySuccess(interaction, 'Summon Result', [
       `Anime: **${anime}**`,
-      `Gezogen: **${result.card.display_name}**`,
+      `Pulled: **${result.card.display_name}**`,
       `Rarity: **${result.rarity}**`,
-      `Kosten: **${result.cost} ${result.currency}**`
+      `Cost: **${result.cost} ${result.currency}**`
     ]);
   } catch (error) {
     return replyError(interaction, error.message || 'Summon failed');

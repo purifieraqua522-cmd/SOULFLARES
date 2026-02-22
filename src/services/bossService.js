@@ -62,8 +62,8 @@ function createBossService(repos) {
     },
 
     async attackBoss(userId, bossId, power) {
-      const open = await repos.getOpenBosses();
-      const boss = open.find((x) => x.id === bossId);
+      const attackable = await repos.getAttackableBosses();
+      const boss = attackable.find((x) => x.id === bossId);
       if (!boss) throw new Error('Boss not available');
 
       const damage = Math.max(1, Math.floor(power * (0.75 + Math.random() * 0.4)));
