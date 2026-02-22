@@ -9,7 +9,7 @@ const data = new SlashCommandBuilder()
     s
       .setName('spawn')
       .setDescription('Spawn a boss by key or by anime pool')
-      .addStringOption((o) => o.setName('boss_key').setDescription('Exact boss key (preferred)').setRequired(false))
+      .addStringOption((o) => o.setName('boss_key').setDescription('Choose boss (optional)').setRequired(false).setAutocomplete(true))
       .addStringOption((o) =>
         o
           .setName('anime')
@@ -68,4 +68,26 @@ async function execute(interaction, ctx) {
   }
 }
 
-module.exports = { data, execute };
+async function autocomplete(interaction, ctx) {
+  try {
+    const focused = interaction.options.getFocused(true);
+    if (focused.name !== 'boss_key') return interaction.respond([]);
+    const query = String(focused.value || '').toLowerCase();
+    const bosses = await ctx.bossService.listBossCatalog();
+    const choices = bosses
+      .filter((b) => {
+        const label = `${b.boss_key} ${b.display_name} ${b.anime}`.toLowerCase();
+        return !query || label.includes(query);
+      })
+      .slice(0, 25)
+      .map((b) => ({
+        name: `${b.display_name} | ${b.anime} | ${b.is_super ? 'super' : 'normal'}`,
+        value: b.boss_key
+      }));
+    return interaction.respond(choices);
+  } catch {
+    return interaction.respond([]);
+  }
+}
+
+module.exports = { data, execute, autocomplete };

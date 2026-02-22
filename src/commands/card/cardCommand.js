@@ -9,23 +9,23 @@ const data = new SlashCommandBuilder()
     s
       .setName('view')
       .setDescription('Render card as PNG')
-      .addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+      .addStringOption((o) => o.setName('card_key').setDescription('Choose your card').setRequired(true).setAutocomplete(true))
       .addStringOption((o) => o.setName('custom_name').setDescription('Optional custom display name').setRequired(false))
   )
   .addSubcommand((s) =>
-    s.setName('info').setDescription('Card detail').addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+    s.setName('info').setDescription('Card detail').addStringOption((o) => o.setName('card_key').setDescription('Choose your card').setRequired(true).setAutocomplete(true))
   )
   .addSubcommand((s) =>
-    s.setName('evolve').setDescription('Evolve a card').addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+    s.setName('evolve').setDescription('Evolve a card').addStringOption((o) => o.setName('card_key').setDescription('Choose your card').setRequired(true).setAutocomplete(true))
   )
   .addSubcommand((s) =>
-    s.setName('merge').setDescription('Merge duplicate cards').addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+    s.setName('merge').setDescription('Merge duplicate cards').addStringOption((o) => o.setName('card_key').setDescription('Choose your card').setRequired(true).setAutocomplete(true))
   )
   .addSubcommand((s) =>
-    s.setName('fuse').setDescription('Run fusion recipe').addStringOption((o) => o.setName('fusion_key').setDescription('Fusion key').setRequired(true))
+    s.setName('fuse').setDescription('Run fusion recipe').addStringOption((o) => o.setName('fusion_key').setDescription('Choose fusion').setRequired(true).setAutocomplete(true))
   )
   .addSubcommand((s) =>
-    s.setName('sacrifice').setDescription('Sacrifice card for currency').addStringOption((o) => o.setName('card_key').setDescription('Card key').setRequired(true))
+    s.setName('sacrifice').setDescription('Sacrifice card for currency').addStringOption((o) => o.setName('card_key').setDescription('Choose your card').setRequired(true).setAutocomplete(true))
   );
 
 async function execute(interaction, ctx) {
@@ -114,4 +114,43 @@ async function execute(interaction, ctx) {
   }
 }
 
-module.exports = { data, execute };
+async function autocomplete(interaction, ctx) {
+  try {
+    const focused = interaction.options.getFocused(true);
+    const query = String(focused.value || '').toLowerCase();
+
+    if (focused.name === 'card_key') {
+      const owned = await ctx.repos.getUserCards(interaction.user.id);
+      const choices = (
+        await Promise.all(
+          owned.map(async (u) => {
+            const card = await ctx.repos.getCardByKey(u.card_key);
+            return {
+              name: `${card?.display_name || u.card_key} | x${u.copies} | L${u.card_level} A+${u.ascension}`,
+              value: u.card_key
+            };
+          })
+        )
+      )
+        .filter((x) => x.value.toLowerCase().includes(query) || x.name.toLowerCase().includes(query))
+        .slice(0, 25);
+
+      return interaction.respond(choices);
+    }
+
+    if (focused.name === 'fusion_key') {
+      const fusions = await ctx.repos.getFusions();
+      const choices = fusions
+        .filter((f) => !query || f.fusion_key.toLowerCase().includes(query))
+        .slice(0, 25)
+        .map((f) => ({ name: f.fusion_key, value: f.fusion_key }));
+      return interaction.respond(choices);
+    }
+
+    return interaction.respond([]);
+  } catch {
+    return interaction.respond([]);
+  }
+}
+
+module.exports = { data, execute, autocomplete };

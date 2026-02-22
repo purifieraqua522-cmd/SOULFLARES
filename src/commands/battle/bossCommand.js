@@ -9,14 +9,13 @@ const data = new SlashCommandBuilder()
     s
       .setName('attack')
       .setDescription('Attack boss with one card')
-      .addStringOption((o) => o.setName('boss').setDescription('Choose active boss (optional)').setRequired(false).setAutocomplete(true))
       .addStringOption((o) => o.setName('card_key').setDescription('Your card key').setRequired(true))
+      .addStringOption((o) => o.setName('boss').setDescription('Choose active boss (optional)').setRequired(false).setAutocomplete(true))
   )
   .addSubcommand((s) =>
     s
       .setName('vote')
       .setDescription('Vote/start with difficulty (min 3 players)')
-      .addStringOption((o) => o.setName('boss').setDescription('Choose open boss (optional)').setRequired(false).setAutocomplete(true))
       .addStringOption((o) =>
         o
           .setName('difficulty')
@@ -24,7 +23,8 @@ const data = new SlashCommandBuilder()
           .setRequired(true)
           .addChoices({ name: 'Easy', value: 'easy' }, { name: 'Hard', value: 'hard' }, { name: 'Nightmare', value: 'nightmare' })
       )
-      .addStringOption((o) => o.setName('player_ids').setDescription('Comma separated user IDs').setRequired(true))
+      .addStringOption((o) => o.setName('boss').setDescription('Choose open boss (optional)').setRequired(false).setAutocomplete(true))
+      .addStringOption((o) => o.setName('player_ids').setDescription('Optional comma separated user IDs').setRequired(false))
   );
 
 async function execute(interaction, ctx) {
@@ -48,8 +48,8 @@ async function execute(interaction, ctx) {
     if (sub === 'vote') {
       const selected = interaction.options.getString('boss');
       const difficulty = interaction.options.getString('difficulty', true);
-      const ids = interaction.options
-        .getString('player_ids', true)
+      const rawIds = interaction.options.getString('player_ids') || '';
+      const ids = rawIds
         .split(',')
         .map((x) => x.trim())
         .filter(Boolean);
@@ -130,9 +130,27 @@ async function execute(interaction, ctx) {
 async function autocomplete(interaction, ctx) {
   try {
     const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'boss') return interaction.respond([]);
+    if (!['boss', 'card_key'].includes(focused.name)) return interaction.respond([]);
 
     const query = String(focused.value || '').toLowerCase();
+    if (focused.name === 'card_key') {
+      const owned = await ctx.repos.getUserCards(interaction.user.id);
+      const choices = (
+        await Promise.all(
+          owned.map(async (u) => {
+            const card = await ctx.repos.getCardByKey(u.card_key);
+            return {
+              name: `${card?.display_name || u.card_key} | x${u.copies} | L${u.card_level}`,
+              value: u.card_key
+            };
+          })
+        )
+      )
+        .filter((x) => x.value.toLowerCase().includes(query) || x.name.toLowerCase().includes(query))
+        .slice(0, 25);
+      return interaction.respond(choices);
+    }
+
     const sub = interaction.options.getSubcommand();
     const bosses = sub === 'vote' ? await ctx.repos.getOpenBosses() : await ctx.repos.getVisibleBosses();
     const withMeta = await Promise.all(

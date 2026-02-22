@@ -20,7 +20,12 @@ const data = new SlashCommandBuilder()
           )
       )
   )
-  .addSubcommand((s) => s.setName('buy').setDescription('Buy store item').addStringOption((o) => o.setName('item_key').setRequired(true).setDescription('Store item key')));
+  .addSubcommand((s) =>
+    s
+      .setName('buy')
+      .setDescription('Buy store item')
+      .addStringOption((o) => o.setName('item_key').setRequired(true).setDescription('Choose store item').setAutocomplete(true))
+  );
 
 async function execute(interaction, ctx) {
   const sub = interaction.options.getSubcommand();
@@ -49,4 +54,26 @@ async function execute(interaction, ctx) {
   }
 }
 
-module.exports = { data, execute };
+async function autocomplete(interaction, ctx) {
+  try {
+    const focused = interaction.options.getFocused(true);
+    if (focused.name !== 'item_key') return interaction.respond([]);
+    const query = String(focused.value || '').toLowerCase();
+    const items = await ctx.storeService.list();
+    const choices = items
+      .filter((i) => {
+        const label = `${i.item_key} ${i.display_name} ${i.price_currency}`.toLowerCase();
+        return !query || label.includes(query);
+      })
+      .slice(0, 25)
+      .map((i) => ({
+        name: `${i.display_name} | ${i.price_amount} ${i.price_currency}`,
+        value: i.item_key
+      }));
+    return interaction.respond(choices);
+  } catch {
+    return interaction.respond([]);
+  }
+}
+
+module.exports = { data, execute, autocomplete };

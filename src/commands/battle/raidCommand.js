@@ -32,7 +32,7 @@ const data = new SlashCommandBuilder()
     s
       .setName('join')
       .setDescription('Join raid lobby')
-      .addStringOption((o) => o.setName('raid_id').setDescription('Choose raid').setRequired(true).setAutocomplete(true))
+      .addStringOption((o) => o.setName('raid').setDescription('Choose raid (optional)').setRequired(false).setAutocomplete(true))
   );
 
 async function execute(interaction, ctx) {
@@ -53,7 +53,11 @@ async function execute(interaction, ctx) {
     }
 
     if (sub === 'join') {
-      const raidId = interaction.options.getString('raid_id', true);
+      const selected = interaction.options.getString('raid');
+      const raids = await ctx.repos.getJoinableRaids();
+      if (!raids.length) return replyError(interaction, 'No joinable raids found.');
+      const raidId = selected ? (raids.find((r) => r.id === selected)?.id || null) : raids[0].id;
+      if (!raidId) return replyError(interaction, 'Selected raid not found.');
       const raid = await ctx.raidService.joinRaid(userId, raidId);
       return replySuccess(interaction, 'Raid Joined', [
         `Raid ID: \`${raid.id}\``,
@@ -69,7 +73,7 @@ async function execute(interaction, ctx) {
 async function autocomplete(interaction, ctx) {
   try {
     const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'raid_id') return interaction.respond([]);
+    if (focused.name !== 'raid') return interaction.respond([]);
 
     const query = String(focused.value || '').toLowerCase();
     const raids = await ctx.repos.getJoinableRaids();
