@@ -82,7 +82,7 @@ async function main() {
 
   client.once(Events.ClientReady, (readyClient) => {
     logInfo(`SOULFALRES logged in as ${readyClient.user.tag}`);
-    startBossSchedulers({ bossService });
+    startBossSchedulers({ bossService, client: readyClient, env });
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
