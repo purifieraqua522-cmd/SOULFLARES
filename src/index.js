@@ -117,7 +117,7 @@ async function main() {
       const code = Number(error?.code || 0);
       const isAckError = code === 10062 || code === 40060;
       if (isAckError) {
-        logWarn('Interaction ack timeout/already acknowledged', { command: interaction.commandName, code });
+        logWarn('Interaction already acknowledged', { command: interaction.commandName, code });
         return;
       }
       logError('Command execution failed', error);

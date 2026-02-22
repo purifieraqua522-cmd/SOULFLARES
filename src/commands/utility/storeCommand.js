@@ -168,16 +168,31 @@ function buildPayload(state) {
 
 async function execute(interaction, ctx) {
   try {
+    const loadingV2 = new ContainerBuilder().addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`## ${E.store} SOULFLARES Store`),
+      new TextDisplayBuilder().setContent('Loading store...')
+    );
+    const loadingEmbed = new EmbedBuilder().setColor('#1e293b').setTitle(`${E.store} SOULFLARES Store`).setDescription('Loading store...');
+
     if (!interaction.deferred && !interaction.replied) {
-      if (supportsV2()) {
-        const loading = new ContainerBuilder().addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`## ${E.store} SOULFLARES Store`),
-          new TextDisplayBuilder().setContent('Loading store...')
-        );
-        await interaction.reply({ flags: MessageFlags.IsComponentsV2, components: [loading] });
-      } else {
-        const loadingEmbed = new EmbedBuilder().setColor('#1e293b').setTitle(`${E.store} SOULFLARES Store`).setDescription('Loading store...');
-        await interaction.reply({ embeds: [loadingEmbed] });
+      try {
+        if (supportsV2()) {
+          await interaction.reply({ flags: MessageFlags.IsComponentsV2, components: [loadingV2] });
+        } else {
+          await interaction.reply({ embeds: [loadingEmbed] });
+        }
+      } catch (ackErr) {
+        const code = Number(ackErr?.code || 0);
+        if (code !== 40060 && code !== 10062) throw ackErr;
+        try {
+          if (supportsV2()) {
+            await interaction.editReply({ flags: MessageFlags.IsComponentsV2, components: [loadingV2], embeds: [], content: '' });
+          } else {
+            await interaction.editReply({ embeds: [loadingEmbed], components: [], content: '' });
+          }
+        } catch {
+          // Continue; later editReply may still succeed.
+        }
       }
     }
 
