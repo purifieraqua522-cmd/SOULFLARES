@@ -51,11 +51,11 @@ async function main() {
 
   const summonService = createSummonService(repos);
   const cardService = createCardService(repos);
-  const bossService = createBossService(repos);
+  const bossRenderService = createBossRenderService();
+  const bossService = createBossService(repos, bossRenderService);
   const raidService = createRaidService(repos);
   const storeService = createStoreService(repos);
   const assetsService = createAssetsService(repos);
-  const bossRenderService = createBossRenderService();
   await assetsService.syncCardsFromAssets();
 
   const ctx = {
@@ -109,17 +109,26 @@ async function main() {
 
     try {
       if (!interaction.deferred && !interaction.replied) {
-        await interaction.deferReply();
+        try {
+          await interaction.deferReply();
+        } catch (ackErr) {
+          const ackCode = Number(ackErr?.code || 0);
+          if (ackCode === 10062 || ackCode === 40060) {
+            logWarn('Interaction ack timeout/already acknowledged', { command: interaction.commandName, code: ackCode });
+            return;
+          }
+          throw ackErr;
+        }
       }
       await module.execute(interaction, ctx);
     } catch (error) {
-      logError('Command execution failed', error);
       const code = Number(error?.code || 0);
       const isAckError = code === 10062 || code === 40060;
       if (isAckError) {
         logWarn('Interaction ack timeout/already acknowledged', { command: interaction.commandName, code });
         return;
       }
+      logError('Command execution failed', error);
 
       try {
         await replyError(interaction, 'Command failed unexpectedly.');

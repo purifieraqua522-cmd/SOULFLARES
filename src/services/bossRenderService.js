@@ -81,6 +81,169 @@ function drawHpBar(ctx, x, y, w, h, current, max, accent) {
 
 function createBossRenderService() {
   return {
+    async generateBossSpawnPng(payload) {
+      const {
+        bossName,
+        bossKey,
+        anime,
+        difficulty,
+        hpMax,
+        isSuper,
+        isEvent,
+        participants = [],
+        fontFamily = 'sans-serif'
+      } = payload;
+
+      const width = 1600;
+      const height = 900;
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+      bgGrad.addColorStop(0, '#0f172a');
+      bgGrad.addColorStop(0.5, '#1e293b');
+      bgGrad.addColorStop(1, '#111827');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Difficulty color
+      const diffColor = difficulty === 'nightmare' ? '#ff4d6d' : difficulty === 'hard' ? '#ff9f1c' : '#2ec4b6';
+      const typeColor = isEvent ? '#f59e0b' : isSuper ? '#ec4899' : '#06b6d4';
+
+      // Top panel - Boss Info
+      const panelGrad = ctx.createLinearGradient(0, 0, width, 220);
+      panelGrad.addColorStop(0, 'rgba(15,23,42,0.95)');
+      panelGrad.addColorStop(1, 'rgba(30,41,59,0.8)');
+      ctx.fillStyle = panelGrad;
+      ctx.fillRect(0, 0, width, 220);
+
+      // Top border accent
+      ctx.fillStyle = typeColor;
+      ctx.fillRect(0, 0, width, 4);
+
+      // Boss name
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 96px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(bossName, 80, 120);
+
+      // Boss key and details
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = `600 32px ${fontFamily}, sans-serif`;
+      ctx.fillText(`Boss Key: ${bossKey}`, 80, 165);
+
+      // Anime label (right side)
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = `500 28px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`Anime: ${String(anime).toUpperCase()}`, width - 80, 100);
+
+      // Type badge
+      ctx.fillStyle = typeColor;
+      ctx.font = `700 26px ${fontFamily}, sans-serif`;
+      const typeText = isEvent ? 'EVENT' : isSuper ? 'SUPER' : 'NORMAL';
+      ctx.fillText(typeText, width - 80, 155);
+
+      // Difficulty badge (right side bottom)
+      ctx.fillStyle = diffColor;
+      ctx.font = `700 32px ${fontFamily}, sans-serif`;
+      ctx.fillText(difficulty.toUpperCase(), width - 80, 195);
+
+      // Middle panel - HP and Stats
+      ctx.fillStyle = 'rgba(15,23,42,0.85)';
+      ctx.fillRect(80, 260, 1440, 380);
+      ctx.strokeStyle = 'rgba(148,163,184,0.4)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(80, 260, 1440, 380);
+
+      // HP Bar background
+      ctx.fillStyle = 'rgba(15,23,42,0.9)';
+      ctx.fillRect(120, 310, 1360, 60);
+      ctx.strokeStyle = diffColor;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(120, 310, 1360, 60);
+
+      // HP Bar fill
+      const hpGrad = ctx.createLinearGradient(120, 310, 1480, 310);
+      hpGrad.addColorStop(0, diffColor);
+      hpGrad.addColorStop(1, '#22d3ee');
+      ctx.fillStyle = hpGrad;
+      ctx.fillRect(122, 312, 1356, 56);
+
+      // HP text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `700 40px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`${hpMax.toLocaleString()} HP`, 800, 354);
+
+      // Stats grid
+      const statY = 420;
+      const stat1X = 200;
+      const stat2X = 800;
+      const stat3X = 1400;
+
+      // Stat boxes
+      [stat1X, stat2X, stat3X].forEach((x) => {
+        ctx.fillStyle = 'rgba(30,41,59,0.8)';
+        ctx.fillRect(x - 140, statY - 40, 280, 100);
+        ctx.strokeStyle = 'rgba(148,163,184,0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 140, statY - 40, 280, 100);
+      });
+
+      // Stat 1: Difficulty
+      ctx.fillStyle = diffColor;
+      ctx.font = `700 36px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('DIFFICULTY', stat1X, statY - 10);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `600 28px ${fontFamily}, sans-serif`;
+      ctx.fillText(difficulty.toUpperCase(), stat1X, statY + 35);
+
+      // Stat 2: Status
+      ctx.fillStyle = '#22c55e';
+      ctx.font = `700 36px ${fontFamily}, sans-serif`;
+      ctx.fillText('STATUS', stat2X, statY - 10);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `600 28px ${fontFamily}, sans-serif`;
+      ctx.fillText('OPEN', stat2X, statY + 35);
+
+      // Stat 3: Participants
+      ctx.fillStyle = '#3b82f6';
+      ctx.font = `700 36px ${fontFamily}, sans-serif`;
+      ctx.fillText('PARTICIPANTS', stat3X, statY - 10);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `600 28px ${fontFamily}, sans-serif`;
+      ctx.fillText(`${participants.length}`, stat3X, statY + 35);
+
+      // Bottom section - Action info
+      ctx.fillStyle = 'rgba(15,23,42,0.8)';
+      ctx.fillRect(80, 680, 1440, 180);
+      ctx.strokeStyle = 'rgba(148,163,184,0.3)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(80, 680, 1440, 180);
+
+      // Instructions
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = `600 32px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('⚔️  BOSS SPAWNED!', 120, 730);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = `500 26px ${fontFamily}, sans-serif`;
+      ctx.fillText('Use /boss attack to attack this boss', 120, 770);
+      ctx.fillText('Use /boss vote to start a raid with minimum 3 players', 120, 805);
+
+      // Footer
+      ctx.fillStyle = 'rgba(148,163,184,0.5)';
+      ctx.font = `500 20px ${fontFamily}, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText('SOULFLARES - BOSS SYSTEM v2.0', width - 80, 840);
+
+      return canvas.toBuffer('image/png');
+    },
+
     async generateBossFightPng(payload) {
       const {
         bossName,

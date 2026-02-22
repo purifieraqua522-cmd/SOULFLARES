@@ -6,11 +6,11 @@ function calcDifficultyMod(difficulty) {
   return 1.0;
 }
 
-function createBossService(repos) {
+function createBossService(repos, bossRenderService) {
   async function spawnBossFromRow(boss) {
     const hp = boss.hp_base;
     const expiresAt = new Date(Date.now() + 55 * 60 * 1000).toISOString();
-    return repos.createActiveBoss({
+    const activeBoss = await repos.createActiveBoss({
       boss_key: boss.boss_key,
       difficulty: 'easy',
       hp_current: hp,
@@ -19,6 +19,27 @@ function createBossService(repos) {
       state: 'open',
       participants: []
     });
+
+    // Generate spawn PNG
+    let spawnPng = null;
+    if (bossRenderService) {
+      try {
+        spawnPng = await bossRenderService.generateBossSpawnPng({
+          bossName: boss.display_name,
+          bossKey: boss.boss_key,
+          anime: boss.anime,
+          difficulty: 'easy',
+          hpMax: hp,
+          isSuper: boss.is_super || false,
+          isEvent: boss.is_event || false,
+          participants: []
+        });
+      } catch (err) {
+        console.warn('Failed to generate spawn PNG:', err.message);
+      }
+    }
+
+    return { activeBoss, spawnPng };
   }
 
   return {

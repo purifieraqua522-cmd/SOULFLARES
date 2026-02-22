@@ -106,14 +106,26 @@ async function execute(interaction, ctx) {
       const anime = interaction.options.getString('anime', true);
       const bossDisplay = interaction.options.getString('boss', true);
 
-      const boss = await ctx.bossService.spawnSpecificBoss(bossDisplay);
+      const result = await ctx.bossService.spawnSpecificBoss(bossDisplay);
+      const { activeBoss, spawnPng } = result;
 
+      // Reply with PNG if available
+      if (spawnPng) {
+        const { AttachmentBuilder } = require('discord.js');
+        const file = new AttachmentBuilder(spawnPng, { name: `boss_spawn_${activeBoss.boss_key}.png` });
+        if (interaction.deferred || interaction.replied) {
+          return interaction.editReply({ files: [file] });
+        }
+        return interaction.reply({ files: [file] });
+      }
+
+      // Fallback to text response
       return replySuccess(interaction, 'Boss Spawned', [
         `Type: **${sub.toUpperCase()}**`,
         `Anime: **${animes[anime]?.label || anime}**`,
-        `Boss: **${boss.boss_key}**`,
-        `HP: **${boss.hp_current}/${boss.hp_max}**`,
-        `ID: \`${boss.id}\``
+        `Boss: **${activeBoss.boss_key}**`,
+        `HP: **${activeBoss.hp_current}/${activeBoss.hp_max}**`,
+        `ID: \`${activeBoss.id}\``
       ]);
     }
   } catch (error) {
