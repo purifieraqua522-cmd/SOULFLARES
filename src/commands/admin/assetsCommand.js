@@ -1,4 +1,4 @@
-﻿const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { replyError, replySuccess } = require('../../ui/responders');
 
 const data = new SlashCommandBuilder()
@@ -11,8 +11,9 @@ async function execute(interaction, ctx) {
     const ownerIds = new Set(
       [ctx.env.BOT_OWNER_ID, ...(ctx.env.BOT_OWNER_IDS || '').split(',').map((x) => x.trim())].filter(Boolean)
     );
-    if (!ownerIds.has(interaction.user.id)) {
-      return replyError(interaction, 'Only the bot owner can use this command.');
+    const isAdmin = Boolean(interaction.memberPermissions?.has(PermissionFlagsBits.Administrator));
+    if (!ownerIds.has(interaction.user.id) && !isAdmin) {
+      return replyError(interaction, 'Only the bot owner or an administrator can use this command.');
     }
 
     const sub = interaction.options.getSubcommand();
