@@ -6,7 +6,7 @@
   SeparatorBuilder
 } = require('discord.js');
 
-const ERROR_EMOJI = '<:soul_error:1475084001189429396>';
+const ERROR_EMOJI_TEXT = ':XMark:';
 
 function supportsV2() {
   return typeof ContainerBuilder === 'function' && typeof TextDisplayBuilder === 'function';
@@ -15,8 +15,8 @@ function supportsV2() {
 function buildErrorV2(message) {
   return new ContainerBuilder()
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`## ${ERROR_EMOJI} SOULFALRES Error`),
-      new TextDisplayBuilder().setContent(`- ${message}`)
+      new TextDisplayBuilder().setContent(`## ${ERROR_EMOJI_TEXT} SOULFALRES Error`),
+      new TextDisplayBuilder().setContent(String(message || 'Unknown error'))
     )
     .addSeparatorComponents(new SeparatorBuilder().setSpacing(1));
 }
@@ -35,8 +35,8 @@ async function replyError(interaction, message) {
 
   const embed = new EmbedBuilder()
     .setColor('#ef4444')
-    .setTitle(`${ERROR_EMOJI} SOULFALRES Error`)
-    .setDescription(message);
+    .setTitle(`${ERROR_EMOJI_TEXT} SOULFALRES Error`)
+    .setDescription(String(message || 'Unknown error'));
 
   if (interaction.deferred || interaction.replied) {
     return interaction.editReply({ embeds: [embed] });
@@ -53,4 +53,4 @@ async function replySuccess(interaction, title, lines) {
   return interaction.reply({ embeds: [embed] });
 }
 
-module.exports = { replyError, replySuccess };
+module.exports = { replyError, replySuccess, supportsV2 };

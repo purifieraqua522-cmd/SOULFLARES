@@ -280,9 +280,20 @@ async function execute(interaction, ctx) {
           const result = await ctx.storeService.buy(i.user.id, state.selectedItemKey);
           const balance = result.wallet?.[result.item.price_currency] ?? 0;
 
-          await i.editReply({
-            content: `${E.ok} Bought **${result.item.display_name}** | Effect: ${result.effect} | Balance: ${balance} ${result.item.price_currency}`
-          });
+          const buyLine = `:event~9: Bought ${result.item.display_name} | Effect: ${result.effect} | Balance: ${balance} ${result.item.price_currency}`;
+          if (supportsV2()) {
+            const buyContainer = new ContainerBuilder().addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(buyLine)
+            );
+            await i.editReply({
+              flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+              components: [buyContainer],
+              content: '',
+              embeds: []
+            });
+          } else {
+            await i.editReply({ content: buyLine });
+          }
 
           const all = await ctx.storeService.list();
           itemsByAnime.onepiece = all.filter((x) => ['onepiece', 'global'].includes(x.anime));
@@ -296,7 +307,8 @@ async function execute(interaction, ctx) {
         }
       } catch (err) {
         if (!i.replied && !i.deferred) {
-          await i.reply({ content: `❌ ${err.message || 'Store interaction failed.'}`, flags: MessageFlags.Ephemeral });
+          const msg = `:XMark: SOULFALRES Error\\n${err.message || 'Store interaction failed.'}`;
+          await i.reply({ content: msg, flags: MessageFlags.Ephemeral });
         }
       }
     });
