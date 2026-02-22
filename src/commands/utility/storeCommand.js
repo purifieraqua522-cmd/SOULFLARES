@@ -169,7 +169,16 @@ function buildPayload(state) {
 async function execute(interaction, ctx) {
   try {
     if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply();
+      if (supportsV2()) {
+        const loading = new ContainerBuilder().addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`## ${E.store} SOULFLARES Store`),
+          new TextDisplayBuilder().setContent('Loading store...')
+        );
+        await interaction.reply({ flags: MessageFlags.IsComponentsV2, components: [loading] });
+      } else {
+        const loadingEmbed = new EmbedBuilder().setColor('#1e293b').setTitle(`${E.store} SOULFLARES Store`).setDescription('Loading store...');
+        await interaction.reply({ embeds: [loadingEmbed] });
+      }
     }
 
     const allItems = await ctx.storeService.list();
