@@ -102,7 +102,7 @@ async function execute(interaction, ctx) {
           cardName: card.display_name,
           damage: result.damage,
           defeated: result.defeated,
-          fontFamily: ctx.primaryFontFamily
+          fontFamily: ctx.bossFontFamily || ctx.primaryFontFamily
         });
 
         const file = new AttachmentBuilder(battlePng, { name: `boss_fight_${result.updated.id}.png` });

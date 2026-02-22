@@ -9,7 +9,10 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DEFAULT_TIMEZONE: z.string().default('Europe/Berlin'),
   FONT_PATHS: z.string().optional(),
-  PRIMARY_FONT_FAMILY: z.string().optional()
+  PRIMARY_FONT_FAMILY: z.string().optional(),
+  CARD_FONT_FAMILY: z.string().optional(),
+  BOSS_FONT_FAMILY: z.string().optional(),
+  BOSS_SPAWN_CHANNEL_ID: z.string().optional()
 });
 
 function loadEnv() {

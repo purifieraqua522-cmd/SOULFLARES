@@ -15,6 +15,16 @@ function fontFamilyFromName(filePath) {
   return path.basename(filePath, path.extname(filePath)).replace(/[-_]/g, ' ').trim() || 'SOULFALRES Font';
 }
 
+function registerFontAlias(filePath, alias, loaded) {
+  if (!fs.existsSync(filePath)) return;
+  try {
+    GlobalFonts.registerFromPath(filePath, alias);
+    loaded.push({ family: alias, filePath });
+  } catch (error) {
+    logWarn('Failed to register aliased font', { alias, filePath, error: error.message });
+  }
+}
+
 function registerFonts(env = process.env) {
   const localFontsDir = path.resolve(process.cwd(), 'assets/fonts');
   const envFontDirs = (env.FONT_PATHS || '')
@@ -38,13 +48,24 @@ function registerFonts(env = process.env) {
     }
   }
 
+  // Strong defaults for PNG rendering, if files exist.
+  registerFontAlias(path.join(localFontsDir, 'BebasNeue-Regular.ttf'), 'SOULFALRES Display', loaded);
+  registerFontAlias(path.join(localFontsDir, 'Rajdhani-Bold.ttf'), 'SOULFALRES Battle', loaded);
+  registerFontAlias(path.join(localFontsDir, 'Rajdhani-Medium.ttf'), 'SOULFALRES UI', loaded);
+
   if (!loaded.length) {
     logWarn('No custom fonts registered. Using canvas/system fallback fonts.');
   } else {
     logInfo('Custom fonts registered', { count: loaded.length });
   }
 
-  return loaded;
+  const families = {
+    display: env.CARD_FONT_FAMILY || 'SOULFALRES Display',
+    battle: env.BOSS_FONT_FAMILY || 'SOULFALRES Battle',
+    ui: env.PRIMARY_FONT_FAMILY || 'SOULFALRES UI'
+  };
+
+  return { loaded, families };
 }
 
 module.exports = { registerFonts };

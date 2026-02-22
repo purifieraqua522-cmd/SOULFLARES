@@ -46,8 +46,10 @@ async function main() {
   const env = loadEnv();
   const db = createDb(env);
   const repos = createRepositories(db);
-  const registeredFonts = registerFonts(env);
-  const primaryFontFamily = env.PRIMARY_FONT_FAMILY || registeredFonts[0]?.family || 'sans-serif';
+  const fontSetup = registerFonts(env);
+  const primaryFontFamily = fontSetup.families.ui || 'sans-serif';
+  const cardFontFamily = fontSetup.families.display || primaryFontFamily;
+  const bossFontFamily = fontSetup.families.battle || primaryFontFamily;
 
   const summonService = createSummonService(repos);
   const cardService = createCardService(repos);
@@ -70,7 +72,9 @@ async function main() {
     pngService,
     assetsService,
     bossRenderService,
-    primaryFontFamily
+    primaryFontFamily,
+    cardFontFamily,
+    bossFontFamily
   };
 
   await deployCommands(env);

@@ -54,7 +54,7 @@ async function execute(interaction, ctx) {
         ascension: userCard.ascension,
         customName,
         imagePath,
-        fontFamily: ctx.primaryFontFamily
+        fontFamily: ctx.cardFontFamily || ctx.primaryFontFamily
       });
 
       const file = new AttachmentBuilder(png, { name: `${card.key}.png` });
