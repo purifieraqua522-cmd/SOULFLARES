@@ -9,14 +9,14 @@ const data = new SlashCommandBuilder()
     s
       .setName('attack')
       .setDescription('Attack boss with one card')
-      .addStringOption((o) => o.setName('boss_id').setDescription('Choose active boss').setRequired(true).setAutocomplete(true))
+      .addStringOption((o) => o.setName('boss').setDescription('Choose active boss (optional)').setRequired(false).setAutocomplete(true))
       .addStringOption((o) => o.setName('card_key').setDescription('Your card key').setRequired(true))
   )
   .addSubcommand((s) =>
     s
       .setName('vote')
       .setDescription('Vote/start with difficulty (min 3 players)')
-      .addStringOption((o) => o.setName('boss_id').setDescription('Choose active boss').setRequired(true).setAutocomplete(true))
+      .addStringOption((o) => o.setName('boss').setDescription('Choose open boss (optional)').setRequired(false).setAutocomplete(true))
       .addStringOption((o) =>
         o
           .setName('difficulty')
@@ -46,16 +46,22 @@ async function execute(interaction, ctx) {
     }
 
     if (sub === 'vote') {
-      const bossId = interaction.options.getString('boss_id', true);
+      const selected = interaction.options.getString('boss');
       const difficulty = interaction.options.getString('difficulty', true);
       const ids = interaction.options
         .getString('player_ids', true)
         .split(',')
         .map((x) => x.trim())
         .filter(Boolean);
+      const openBosses = await ctx.repos.getOpenBosses();
+      if (!openBosses.length) return replyError(interaction, 'No open bosses to start.');
+      const chosen = selected
+        ? openBosses.find((b) => b.id === selected || b.boss_key === selected)
+        : openBosses[0];
+      if (!chosen) return replyError(interaction, 'Selected boss is not open.');
 
       if (!ids.includes(userId)) ids.push(userId);
-      const updated = await ctx.bossService.voteAndStart(bossId, difficulty, ids);
+      const updated = await ctx.bossService.voteAndStart(chosen.id, difficulty, ids);
       return replySuccess(interaction, 'Boss Started', [
         `Boss ID: \`${updated.id}\``,
         `Difficulty: **${difficulty}**`,
@@ -66,14 +72,20 @@ async function execute(interaction, ctx) {
     if (sub === 'attack') {
       await interaction.deferReply();
 
-      const bossId = interaction.options.getString('boss_id', true);
+      const selected = interaction.options.getString('boss');
       const cardKey = interaction.options.getString('card_key', true);
       const card = await ctx.repos.getCardByKey(cardKey);
       const owned = await ctx.repos.getUserCard(userId, cardKey);
       if (!card || !owned) return replyError(interaction, 'Card not found or not owned.');
+      const bosses = await ctx.repos.getVisibleBosses();
+      if (!bosses.length) return replyError(interaction, 'No active bosses to attack.');
+      const chosen = selected
+        ? bosses.find((b) => b.id === selected || b.boss_key === selected)
+        : bosses[0];
+      if (!chosen) return replyError(interaction, 'Selected boss not found.');
 
       const power = Math.floor(card.base_power * (1 + owned.ascension * 0.1) * (1 + owned.card_level * 0.02));
-      const result = await ctx.bossService.attackBoss(userId, bossId, power);
+      const result = await ctx.bossService.attackBoss(userId, chosen.id, power);
       const bossMeta = await ctx.repos.getBossByKey(result.updated.boss_key);
 
       try {
@@ -118,10 +130,11 @@ async function execute(interaction, ctx) {
 async function autocomplete(interaction, ctx) {
   try {
     const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'boss_id') return interaction.respond([]);
+    if (focused.name !== 'boss') return interaction.respond([]);
 
     const query = String(focused.value || '').toLowerCase();
-    const bosses = await ctx.repos.getVisibleBosses();
+    const sub = interaction.options.getSubcommand();
+    const bosses = sub === 'vote' ? await ctx.repos.getOpenBosses() : await ctx.repos.getVisibleBosses();
     const withMeta = await Promise.all(
       bosses.map(async (b) => ({
         row: b,
