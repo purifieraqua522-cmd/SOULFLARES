@@ -1,4 +1,4 @@
-﻿const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const fs = require('fs');
 const path = require('path');
 
@@ -108,4 +108,68 @@ async function generateCardPng({ card, ownerTag, power, ascension, customName, i
   return canvas.toBuffer('image/png');
 }
 
-module.exports = { generateCardPng };
+async function generateSummonOpeningPng({ anime, rarityHint = '???', fontFamily = 'sans-serif' }) {
+  const canvas = createCanvas(1100, 620);
+  const ctx = canvas.getContext('2d');
+
+  const bgPath = resolveCardBackground(anime);
+  if (bgPath) {
+    try {
+      const bg = await loadImage(bgPath);
+      ctx.drawImage(bg, 0, 0, 1100, 620);
+    } catch {
+      // fallback
+    }
+  }
+
+  if (!bgPath) {
+    const grad = ctx.createLinearGradient(0, 0, 1100, 620);
+    grad.addColorStop(0, '#020617');
+    grad.addColorStop(1, '#111827');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1100, 620);
+  }
+
+  const darkOverlay = ctx.createLinearGradient(0, 0, 0, 620);
+  darkOverlay.addColorStop(0, 'rgba(2,6,23,0.35)');
+  darkOverlay.addColorStop(1, 'rgba(2,6,23,0.85)');
+  ctx.fillStyle = darkOverlay;
+  ctx.fillRect(0, 0, 1100, 620);
+
+  const accent = rarityColor(rarityHint === '???' ? 'legendary' : rarityHint);
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(30, 30, 1040, 560);
+
+  const glow = ctx.createRadialGradient(550, 300, 20, 550, 300, 260);
+  glow.addColorStop(0, 'rgba(255,255,255,0.9)');
+  glow.addColorStop(0.25, `${accent}aa`);
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(550, 300, 250, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(15,23,42,0.65)';
+  ctx.fillRect(430, 140, 240, 320);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(430, 140, 240, 320);
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = `800 54px ${fontFamily}, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('CARD SUMMON', 550, 92);
+
+  ctx.font = `700 34px ${fontFamily}, sans-serif`;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('Opening pack...', 550, 512);
+
+  ctx.font = `600 26px ${fontFamily}, sans-serif`;
+  ctx.fillStyle = '#93c5fd';
+  ctx.fillText(`Anime: ${String(anime || '').toUpperCase()}`, 550, 548);
+
+  return canvas.toBuffer('image/png');
+}
+
+module.exports = { generateCardPng, generateSummonOpeningPng };

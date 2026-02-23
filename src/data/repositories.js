@@ -171,6 +171,11 @@ function createRepositories(db) {
       return safeDb(db.from('active_bosses').select('*').eq('state', 'open'), 'getOpenBosses');
     },
 
+    async getActiveBossById(id) {
+      const rows = await safeDb(db.from('active_bosses').select('*').eq('id', id).limit(1), 'getActiveBossById');
+      return rows[0] || null;
+    },
+
     async getVisibleBosses() {
       return safeDb(
         db.from('active_bosses').select('*').in('state', ['open', 'active']).order('spawned_at', { ascending: false }),
