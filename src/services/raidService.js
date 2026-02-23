@@ -1,23 +1,29 @@
-﻿const crypto = require('crypto');
+const crypto = require('crypto');
+const { raidPresets } = require('../data/constants');
 
 function createRaidService(repos) {
   return {
-    async startRaid(userId, anime, difficulty) {
+    async startRaid(userId, anime, raidKey) {
       try {
         await repos.consumeMaterial(userId, 'raid_ticket', 1);
       } catch {
         throw new Error('You need 1 raid_ticket to start a raid. Buy one in /store buy.');
       }
+
+      const preset = raidPresets[raidKey];
+      if (!preset) throw new Error('Invalid raid preset.');
+      if (preset.anime !== anime) throw new Error('Raid does not match selected anime.');
+
       const raid = await repos.createRaid({
         anime,
         host_user_id: userId,
-        difficulty,
-        required_power: difficulty === 'nightmare' ? 12000 : difficulty === 'hard' ? 7500 : 4200,
+        difficulty: `fixed:${raidKey}`,
+        required_power: preset.fixedPower,
         state: 'lobby',
         members: [userId],
-        rewards_seed: crypto.randomUUID()
+        rewards_seed: `${raidKey}:${crypto.randomUUID()}`
       });
-      return raid;
+      return { raid, preset };
     },
 
     async joinRaid(userId, raidId) {

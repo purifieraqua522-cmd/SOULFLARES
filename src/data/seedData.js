@@ -1,4 +1,4 @@
-﻿const cards = [
+const cards = [
   { key: 'luffy_base', anime: 'onepiece', display_name: 'Luffy', rarity: 'epic', base_power: 780, evolution_tier: 1, evolution_line: ['luffy_base', 'luffy_snakeman', 'luffy_gear5'] },
   { key: 'luffy_snakeman', anime: 'onepiece', display_name: 'Luffy Snakeman', rarity: 'legendary', base_power: 1400, evolution_tier: 2, evolution_line: ['luffy_base', 'luffy_snakeman', 'luffy_gear5'] },
   { key: 'luffy_gear5', anime: 'onepiece', display_name: 'Luffy Gear 5', rarity: 'mythical', base_power: 2600, evolution_tier: 3, evolution_line: ['luffy_base', 'luffy_snakeman', 'luffy_gear5'] },
@@ -36,46 +36,45 @@ const materials = [
 
 const bosses = [
   // ONE PIECE - Normal Bosses
-  { boss_key: 'kizaru', anime: 'onepiece', display_name: 'Admiral Kizaru', is_super: false, is_event: false, hp_base: 45000, power_base: 680 },
-  { boss_key: 'mihawk', anime: 'onepiece', display_name: 'Dracule Mihawk', is_super: false, is_event: false, hp_base: 48000, power_base: 700 },
-  { boss_key: 'aokiji', anime: 'onepiece', display_name: 'Admiral Aokiji', is_super: false, is_event: false, hp_base: 46000, power_base: 690 },
-  { boss_key: 'kaido', anime: 'onepiece', display_name: 'Kaido', is_super: true, is_event: false, hp_base: 115000, power_base: 1450 },
-  // ONE PIECE - Event Bosses
-  { boss_key: 'luffy_awakened', anime: 'onepiece', display_name: 'Awakened Luffy (Event)', is_super: false, is_event: true, hp_base: 52000, power_base: 750 },
-  { boss_key: 'blackbeard_event', anime: 'onepiece', display_name: 'Blackbeard Rampage (Event)', is_super: false, is_event: true, hp_base: 54000, power_base: 770 },
-  { boss_key: 'whitebeard_festival', anime: 'onepiece', display_name: 'Whitebeard Festival (Event)', is_super: true, is_event: true, hp_base: 130000, power_base: 1600 },
+  { boss_key: 'doflamingo', anime: 'onepiece', display_name: 'Donquixote Doflamingo', is_super: false, is_event: false, is_secret: false, hp_base: 76000, power_base: 980 },
+  { boss_key: 'blackbeard', anime: 'onepiece', display_name: 'Marshall D. Teach', is_super: false, is_event: false, is_secret: false, hp_base: 79000, power_base: 1010 },
+  { boss_key: 'mihawk', anime: 'onepiece', display_name: 'Dracule Mihawk', is_super: false, is_event: false, is_secret: false, hp_base: 78000, power_base: 1000 },
+  // ONE PIECE - Super Bosses
+  { boss_key: 'shanks', anime: 'onepiece', display_name: 'Red-Haired Shanks', is_super: true, is_event: false, is_secret: false, hp_base: 190000, power_base: 2150 },
+  { boss_key: 'whitebeard', anime: 'onepiece', display_name: 'Edward Newgate', is_super: true, is_event: false, is_secret: false, hp_base: 198000, power_base: 2230 },
+  // ONE PIECE - Secret Boss
+  { boss_key: 'imu', anime: 'onepiece', display_name: 'Imu (Secret)', is_super: true, is_event: true, is_secret: true, hp_base: 275000, power_base: 2950 },
 
   // NARUTO - Normal Bosses
-  { boss_key: 'itachi', anime: 'naruto', display_name: 'Itachi Uchiha', is_super: false, is_event: false, hp_base: 43000, power_base: 650 },
-  { boss_key: 'pain', anime: 'naruto', display_name: 'Pain', is_super: false, is_event: false, hp_base: 47000, power_base: 700 },
-  { boss_key: 'kisame', anime: 'naruto', display_name: 'Kisame', is_super: false, is_event: false, hp_base: 45000, power_base: 680 },
-  { boss_key: 'madara', anime: 'naruto', display_name: 'Madara Uchiha', is_super: true, is_event: false, hp_base: 120000, power_base: 1500 },
-  // NARUTO - Event Bosses
-  { boss_key: 'naruto_nine_tails', anime: 'naruto', display_name: 'Naruto Nine-Tails (Event)', is_super: false, is_event: true, hp_base: 51000, power_base: 740 },
-  { boss_key: 'sasuke_awakened', anime: 'naruto', display_name: 'Sasuke Awakened (Event)', is_super: false, is_event: true, hp_base: 50000, power_base: 730 },
-  { boss_key: 'otsutsuki_kaguya', anime: 'naruto', display_name: 'Kaguya Ōtsutsuki (Event)', is_super: true, is_event: true, hp_base: 135000, power_base: 1650 },
+  { boss_key: 'naruto', anime: 'naruto', display_name: 'Naruto Uzumaki', is_super: false, is_event: false, is_secret: false, hp_base: 77000, power_base: 995 },
+  { boss_key: 'sasuke', anime: 'naruto', display_name: 'Sasuke Uchiha', is_super: false, is_event: false, is_secret: false, hp_base: 77500, power_base: 1005 },
+  { boss_key: 'itachi', anime: 'naruto', display_name: 'Itachi Uchiha', is_super: false, is_event: false, is_secret: false, hp_base: 76000, power_base: 980 },
+  // NARUTO - Super Bosses
+  { boss_key: 'obito', anime: 'naruto', display_name: 'Obito Uchiha', is_super: true, is_event: false, is_secret: false, hp_base: 188000, power_base: 2120 },
+  { boss_key: 'kaguya', anime: 'naruto', display_name: 'Kaguya Otsutsuki', is_super: true, is_event: false, is_secret: false, hp_base: 205000, power_base: 2290 },
+  // NARUTO - Secret Boss
+  { boss_key: 'madara', anime: 'naruto', display_name: 'Madara Uchiha (Secret)', is_super: true, is_event: true, is_secret: true, hp_base: 268000, power_base: 2890 },
 
   // BLEACH - Normal Bosses
-  { boss_key: 'ulquiorra', anime: 'bleach', display_name: 'Ulquiorra', is_super: false, is_event: false, hp_base: 43000, power_base: 640 },
-  { boss_key: 'grimmjow', anime: 'bleach', display_name: 'Grimmjow', is_super: false, is_event: false, hp_base: 45000, power_base: 670 },
-  { boss_key: 'byakuya', anime: 'bleach', display_name: 'Byakuya', is_super: false, is_event: false, hp_base: 46000, power_base: 690 },
-  { boss_key: 'yhwach', anime: 'bleach', display_name: 'Yhwach', is_super: true, is_event: false, hp_base: 112000, power_base: 1420 },
-  // BLEACH - Event Bosses
-  { boss_key: 'aizen_final', anime: 'bleach', display_name: 'Aizen Final Form (Event)', is_super: false, is_event: true, hp_base: 50000, power_base: 720 },
-  { boss_key: 'ichigo_hollow', anime: 'bleach', display_name: 'Ichigo Hollow (Event)', is_super: false, is_event: true, hp_base: 53000, power_base: 760 },
-  { boss_key: 'soul_king_event', anime: 'bleach', display_name: 'Soul King Ceremony (Event)', is_super: true, is_event: true, hp_base: 128000, power_base: 1580 },
+  { boss_key: 'grimmjow', anime: 'bleach', display_name: 'Grimmjow Jaegerjaquez', is_super: false, is_event: false, is_secret: false, hp_base: 75000, power_base: 970 },
+  { boss_key: 'ulquiorra', anime: 'bleach', display_name: 'Ulquiorra Cifer', is_super: false, is_event: false, is_secret: false, hp_base: 76500, power_base: 985 },
+  { boss_key: 'kisuke', anime: 'bleach', display_name: 'Kisuke Urahara', is_super: false, is_event: false, is_secret: false, hp_base: 77200, power_base: 995 },
+  // BLEACH - Super Bosses
+  { boss_key: 'ichigo', anime: 'bleach', display_name: 'Ichigo Kurosaki', is_super: true, is_event: false, is_secret: false, hp_base: 186000, power_base: 2100 },
+  { boss_key: 'yhwach', anime: 'bleach', display_name: 'Yhwach', is_super: true, is_event: false, is_secret: false, hp_base: 200000, power_base: 2260 },
+  // BLEACH - Secret Boss
+  { boss_key: 'aizen', anime: 'bleach', display_name: 'Aizen Sosuke (Secret)', is_super: true, is_event: true, is_secret: true, hp_base: 272000, power_base: 2920 },
 
   // JJK - Normal Bosses
-  { boss_key: 'jogo', anime: 'jjk', display_name: 'Jogo', is_super: false, is_event: false, hp_base: 42000, power_base: 630 },
-  { boss_key: 'mahito', anime: 'jjk', display_name: 'Mahito', is_super: false, is_event: false, hp_base: 45000, power_base: 670 },
-  { boss_key: 'hanami', anime: 'jjk', display_name: 'Hanami', is_super: false, is_event: false, hp_base: 44000, power_base: 660 },
-  { boss_key: 'sukuna_true', anime: 'jjk', display_name: 'Sukuna True Form', is_super: true, is_event: false, hp_base: 125000, power_base: 1550 },
-  // JJK - Event Bosses
-  { boss_key: 'gojo_rampage', anime: 'jjk', display_name: 'Gojo Rampage (Event)', is_super: false, is_event: true, hp_base: 55000, power_base: 800 },
-  { boss_key: 'toji_awakened', anime: 'jjk', display_name: 'Toji Awakened (Event)', is_super: false, is_event: true, hp_base: 49000, power_base: 710 },
-  { boss_key: 'kenjaku_convergence', anime: 'jjk', display_name: 'Kenjaku Convergence (Event)', is_super: true, is_event: true, hp_base: 132000, power_base: 1620 }
+  { boss_key: 'toji', anime: 'jjk', display_name: 'Toji Fushiguro', is_super: false, is_event: false, is_secret: false, hp_base: 77000, power_base: 1000 },
+  { boss_key: 'kashimo', anime: 'jjk', display_name: 'Hajime Kashimo', is_super: false, is_event: false, is_secret: false, hp_base: 78000, power_base: 1010 },
+  { boss_key: 'hakari', anime: 'jjk', display_name: 'Kinji Hakari', is_super: false, is_event: false, is_secret: false, hp_base: 77500, power_base: 1005 },
+  // JJK - Super Bosses
+  { boss_key: 'sukuna', anime: 'jjk', display_name: 'Ryomen Sukuna', is_super: true, is_event: false, is_secret: false, hp_base: 195000, power_base: 2200 },
+  { boss_key: 'mahoraga', anime: 'jjk', display_name: 'Eight-Handled Mahoraga', is_super: true, is_event: false, is_secret: false, hp_base: 198000, power_base: 2240 },
+  // JJK - Secret Boss
+  { boss_key: 'gojo_calamity', anime: 'jjk', display_name: 'Gojo Calamity (Secret)', is_super: true, is_event: true, is_secret: true, hp_base: 278000, power_base: 2980 }
 ];
-
 const fusions = [
   {
     fusion_key: 'gojo_geto_fusion',

@@ -1,5 +1,6 @@
-﻿const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const { replyError, replySuccess } = require('../../ui/responders');
+const { raidPresets } = require('../../data/constants');
 
 const data = new SlashCommandBuilder()
   .setName('raid')
@@ -20,13 +21,7 @@ const data = new SlashCommandBuilder()
             { name: 'JJK', value: 'jjk' }
           )
       )
-      .addStringOption((o) =>
-        o
-          .setName('difficulty')
-          .setDescription('Raid difficulty')
-          .setRequired(true)
-          .addChoices({ name: 'Easy', value: 'easy' }, { name: 'Hard', value: 'hard' }, { name: 'Nightmare', value: 'nightmare' })
-      )
+      .addStringOption((o) => o.setName('raid_key').setDescription('Choose raid preset').setRequired(true).setAutocomplete(true))
   )
   .addSubcommand((s) =>
     s
@@ -42,12 +37,14 @@ async function execute(interaction, ctx) {
   try {
     if (sub === 'start') {
       const anime = interaction.options.getString('anime', true);
-      const difficulty = interaction.options.getString('difficulty', true);
-      const raid = await ctx.raidService.startRaid(userId, anime, difficulty);
+      const raidKey = interaction.options.getString('raid_key', true);
+      const { raid, preset } = await ctx.raidService.startRaid(userId, anime, raidKey);
       return replySuccess(interaction, 'Raid Created', [
         `Raid ID: \`${raid.id}\``,
-        `Anime: **${raid.anime}**`,
-        `Difficulty: **${raid.difficulty}**`,
+        `Anime: **${raid.anime.toUpperCase()}**`,
+        `Raid: **${preset.label}**`,
+        `Fixed Power: **${preset.fixedPower}**`,
+        `Stages: **${preset.stages.join(' -> ')}**`,
         `Status: **${raid.state}**`
       ]);
     }
@@ -73,22 +70,41 @@ async function execute(interaction, ctx) {
 async function autocomplete(interaction, ctx) {
   try {
     const focused = interaction.options.getFocused(true);
-    if (focused.name !== 'raid') return interaction.respond([]);
-
     const query = String(focused.value || '').toLowerCase();
-    const raids = await ctx.repos.getJoinableRaids();
-    const choices = raids
-      .filter((r) => {
-        const label = `${r.id} ${r.anime} ${r.difficulty} ${r.state}`.toLowerCase();
-        return !query || label.includes(query);
-      })
-      .slice(0, 25)
-      .map((r) => ({
-        name: `${r.anime.toUpperCase()} | ${r.difficulty} | members ${(r.members || []).length} | ${r.state}`,
-        value: r.id
-      }));
 
-    return interaction.respond(choices);
+    if (focused.name === 'raid_key') {
+      const anime = interaction.options.getString('anime');
+      const list = Object.values(raidPresets).filter((preset) => (!anime || preset.anime === anime));
+      const choices = list
+        .filter((preset) => {
+          const label = `${preset.key} ${preset.label} ${preset.anime}`.toLowerCase();
+          return !query || label.includes(query);
+        })
+        .slice(0, 25)
+        .map((preset) => ({
+          name: `${preset.label} | power ${preset.fixedPower}`,
+          value: preset.key
+        }));
+      return interaction.respond(choices);
+    }
+
+    if (focused.name === 'raid') {
+      const raids = await ctx.repos.getJoinableRaids();
+      const choices = raids
+        .filter((r) => {
+          const label = `${r.id} ${r.anime} ${r.difficulty} ${r.state}`.toLowerCase();
+          return !query || label.includes(query);
+        })
+        .slice(0, 25)
+        .map((r) => ({
+          name: `${r.anime.toUpperCase()} | ${(r.difficulty || 'fixed').replace('fixed:', '')} | members ${(r.members || []).length} | ${r.state}`,
+          value: r.id
+        }));
+
+      return interaction.respond(choices);
+    }
+
+    return interaction.respond([]);
   } catch {
     return interaction.respond([]);
   }

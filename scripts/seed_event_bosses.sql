@@ -1,79 +1,55 @@
--- SOULFALRES: Event boss seed (safe to run multiple times)
--- This script is idempotent and can be re-run anytime.
+-- SOULFALRES: Custom boss roster seed (safe to run multiple times)
 
 BEGIN;
 
--- Ensure required column exists (older schemas may miss this)
-ALTER TABLE bosses
-ADD COLUMN IF NOT EXISTS is_event boolean NOT NULL DEFAULT false;
+ALTER TABLE bosses ADD COLUMN IF NOT EXISTS is_event boolean NOT NULL DEFAULT false;
+ALTER TABLE bosses ADD COLUMN IF NOT EXISTS is_secret boolean NOT NULL DEFAULT false;
 
--- ONE PIECE Event Bosses
-INSERT INTO bosses (boss_key, anime, display_name, is_super, is_event, hp_base, power_base, drop_table)
+INSERT INTO bosses (boss_key, anime, display_name, is_super, is_event, is_secret, hp_base, power_base, drop_table)
 VALUES
-  ('luffy_awakened', 'onepiece', 'Awakened Luffy (Event)', false, true, 52000, 750, '{}'::jsonb),
-  ('blackbeard_event', 'onepiece', 'Blackbeard Rampage (Event)', false, true, 54000, 770, '{}'::jsonb),
-  ('whitebeard_festival', 'onepiece', 'Whitebeard Festival (Event)', true, true, 130000, 1600, '{}'::jsonb)
+  -- ONE PIECE
+  ('doflamingo', 'onepiece', 'Donquixote Doflamingo', false, false, false, 76000, 980, '{}'::jsonb),
+  ('blackbeard', 'onepiece', 'Marshall D. Teach', false, false, false, 79000, 1010, '{}'::jsonb),
+  ('mihawk', 'onepiece', 'Dracule Mihawk', false, false, false, 78000, 1000, '{}'::jsonb),
+  ('shanks', 'onepiece', 'Red-Haired Shanks', true, false, false, 190000, 2150, '{}'::jsonb),
+  ('whitebeard', 'onepiece', 'Edward Newgate', true, false, false, 198000, 2230, '{}'::jsonb),
+  ('imu', 'onepiece', 'Imu (Secret)', true, true, true, 275000, 2950, '{}'::jsonb),
+
+  -- NARUTO
+  ('naruto', 'naruto', 'Naruto Uzumaki', false, false, false, 77000, 995, '{}'::jsonb),
+  ('sasuke', 'naruto', 'Sasuke Uchiha', false, false, false, 77500, 1005, '{}'::jsonb),
+  ('itachi', 'naruto', 'Itachi Uchiha', false, false, false, 76000, 980, '{}'::jsonb),
+  ('obito', 'naruto', 'Obito Uchiha', true, false, false, 188000, 2120, '{}'::jsonb),
+  ('kaguya', 'naruto', 'Kaguya Otsutsuki', true, false, false, 205000, 2290, '{}'::jsonb),
+  ('madara', 'naruto', 'Madara Uchiha (Secret)', true, true, true, 268000, 2890, '{}'::jsonb),
+
+  -- BLEACH
+  ('grimmjow', 'bleach', 'Grimmjow Jaegerjaquez', false, false, false, 75000, 970, '{}'::jsonb),
+  ('ulquiorra', 'bleach', 'Ulquiorra Cifer', false, false, false, 76500, 985, '{}'::jsonb),
+  ('kisuke', 'bleach', 'Kisuke Urahara', false, false, false, 77200, 995, '{}'::jsonb),
+  ('ichigo', 'bleach', 'Ichigo Kurosaki', true, false, false, 186000, 2100, '{}'::jsonb),
+  ('yhwach', 'bleach', 'Yhwach', true, false, false, 200000, 2260, '{}'::jsonb),
+  ('aizen', 'bleach', 'Aizen Sosuke (Secret)', true, true, true, 272000, 2920, '{}'::jsonb),
+
+  -- JJK
+  ('toji', 'jjk', 'Toji Fushiguro', false, false, false, 77000, 1000, '{}'::jsonb),
+  ('kashimo', 'jjk', 'Hajime Kashimo', false, false, false, 78000, 1010, '{}'::jsonb),
+  ('hakari', 'jjk', 'Kinji Hakari', false, false, false, 77500, 1005, '{}'::jsonb),
+  ('sukuna', 'jjk', 'Ryomen Sukuna', true, false, false, 195000, 2200, '{}'::jsonb),
+  ('mahoraga', 'jjk', 'Eight-Handled Mahoraga', true, false, false, 198000, 2240, '{}'::jsonb),
+  ('gojo_calamity', 'jjk', 'Gojo Calamity (Secret)', true, true, true, 278000, 2980, '{}'::jsonb)
 ON CONFLICT (boss_key) DO UPDATE SET
   anime = EXCLUDED.anime,
   display_name = EXCLUDED.display_name,
   is_super = EXCLUDED.is_super,
   is_event = EXCLUDED.is_event,
+  is_secret = EXCLUDED.is_secret,
   hp_base = EXCLUDED.hp_base,
   power_base = EXCLUDED.power_base,
   drop_table = EXCLUDED.drop_table;
 
--- NARUTO Event Bosses
-INSERT INTO bosses (boss_key, anime, display_name, is_super, is_event, hp_base, power_base, drop_table)
-VALUES
-  ('naruto_nine_tails', 'naruto', 'Naruto Nine-Tails (Event)', false, true, 51000, 740, '{}'::jsonb),
-  ('sasuke_awakened', 'naruto', 'Sasuke Awakened (Event)', false, true, 50000, 730, '{}'::jsonb),
-  ('otsutsuki_kaguya', 'naruto', 'Kaguya Otsutsuki (Event)', true, true, 135000, 1650, '{}'::jsonb)
-ON CONFLICT (boss_key) DO UPDATE SET
-  anime = EXCLUDED.anime,
-  display_name = EXCLUDED.display_name,
-  is_super = EXCLUDED.is_super,
-  is_event = EXCLUDED.is_event,
-  hp_base = EXCLUDED.hp_base,
-  power_base = EXCLUDED.power_base,
-  drop_table = EXCLUDED.drop_table;
-
--- BLEACH Event Bosses
-INSERT INTO bosses (boss_key, anime, display_name, is_super, is_event, hp_base, power_base, drop_table)
-VALUES
-  ('aizen_final', 'bleach', 'Aizen Final Form (Event)', false, true, 50000, 720, '{}'::jsonb),
-  ('ichigo_hollow', 'bleach', 'Ichigo Hollow (Event)', false, true, 53000, 760, '{}'::jsonb),
-  ('soul_king_event', 'bleach', 'Soul King Ceremony (Event)', true, true, 128000, 1580, '{}'::jsonb)
-ON CONFLICT (boss_key) DO UPDATE SET
-  anime = EXCLUDED.anime,
-  display_name = EXCLUDED.display_name,
-  is_super = EXCLUDED.is_super,
-  is_event = EXCLUDED.is_event,
-  hp_base = EXCLUDED.hp_base,
-  power_base = EXCLUDED.power_base,
-  drop_table = EXCLUDED.drop_table;
-
--- JJK Event Bosses
-INSERT INTO bosses (boss_key, anime, display_name, is_super, is_event, hp_base, power_base, drop_table)
-VALUES
-  ('gojo_rampage', 'jjk', 'Gojo Rampage (Event)', false, true, 55000, 800, '{}'::jsonb),
-  ('toji_awakened', 'jjk', 'Toji Awakened (Event)', false, true, 49000, 710, '{}'::jsonb),
-  ('kenjaku_convergence', 'jjk', 'Kenjaku Convergence (Event)', true, true, 132000, 1620, '{}'::jsonb)
-ON CONFLICT (boss_key) DO UPDATE SET
-  anime = EXCLUDED.anime,
-  display_name = EXCLUDED.display_name,
-  is_super = EXCLUDED.is_super,
-  is_event = EXCLUDED.is_event,
-  hp_base = EXCLUDED.hp_base,
-  power_base = EXCLUDED.power_base,
-  drop_table = EXCLUDED.drop_table;
-
--- Verify event bosses
-SELECT boss_key, anime, display_name, is_super, is_event
+SELECT boss_key, anime, display_name, is_super, is_event, is_secret, hp_base, power_base
 FROM bosses
-WHERE is_event = true
-ORDER BY anime, is_super DESC, boss_key;
+ORDER BY anime, is_secret DESC, is_super DESC, boss_key;
 
 COMMIT;
-
--- Optional for Supabase PostgREST schema cache refresh if API still says column missing:
--- NOTIFY pgrst, 'reload schema';

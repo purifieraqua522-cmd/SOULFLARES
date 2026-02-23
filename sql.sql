@@ -70,11 +70,15 @@ create table if not exists bosses (
   display_name text not null,
   is_super boolean not null default false,
   is_event boolean not null default false,
+  is_secret boolean not null default false,
   hp_base int not null,
   power_base int not null,
   drop_table jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table bosses add column if not exists is_event boolean not null default false;
+alter table bosses add column if not exists is_secret boolean not null default false;
 
 create table if not exists active_bosses (
   id uuid primary key default gen_random_uuid(),

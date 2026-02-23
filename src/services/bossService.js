@@ -54,7 +54,9 @@ function createBossService(repos, bossRenderService) {
     async spawnScheduledBoss({ anime, isSuper = false }) {
       const info = animes[anime];
       if (!info) throw new Error('Invalid anime');
-      const options = isSuper ? [info.superBoss] : info.bosses;
+      const options = isSuper
+        ? (Array.isArray(info.superBosses) && info.superBosses.length ? info.superBosses : [info.superBoss].filter(Boolean))
+        : info.bosses;
       const bossKey = options[Math.floor(Math.random() * options.length)];
       const boss = await repos.getBossByKey(bossKey);
       if (!boss) throw new Error('Boss missing in DB');

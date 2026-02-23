@@ -33,14 +33,23 @@ async function run() {
   const { error: bossError } = await db.from('bosses').upsert(bosses, { onConflict: 'boss_key' });
   if (bossError) {
     const message = String(bossError.message || '');
+    let reduced = bosses;
+    let usedFallback = false;
+
     if (message.includes("'is_event'")) {
-      const withoutIsEvent = bosses.map(({ is_event, ...rest }) => rest);
-      const { error: retryError } = await db.from('bosses').upsert(withoutIsEvent, { onConflict: 'boss_key' });
-      if (retryError) throw retryError;
-      console.log('Boss seed fallback used (schema has no is_event column).');
-    } else {
-      throw bossError;
+      reduced = reduced.map(({ is_event, ...rest }) => rest);
+      usedFallback = true;
     }
+    if (message.includes("'is_secret'")) {
+      reduced = reduced.map(({ is_secret, ...rest }) => rest);
+      usedFallback = true;
+    }
+
+    if (!usedFallback) throw bossError;
+
+    const { error: retryError } = await db.from('bosses').upsert(reduced, { onConflict: 'boss_key' });
+    if (retryError) throw retryError;
+    console.log('Boss seed fallback used (schema missing is_event and/or is_secret columns).');
   }
 
   await assetsService.syncCardsFromAssets();

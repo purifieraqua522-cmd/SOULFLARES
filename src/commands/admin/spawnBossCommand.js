@@ -15,7 +15,8 @@ const { buildBossSpawnPayload } = require('../../ui/bossAnnouncement');
 const TYPE_OPTIONS = [
   { label: 'Normal', value: 'normal' },
   { label: 'Event', value: 'event' },
-  { label: 'Super', value: 'super' }
+  { label: 'Super', value: 'super' },
+  { label: 'Secret', value: 'secret' }
 ];
 
 const ANIME_OPTIONS = [
@@ -30,9 +31,10 @@ const data = new SlashCommandBuilder().setName('spawnboss').setDescription('Spaw
 function filterBosses(catalog, anime, type) {
   return catalog.filter((boss) => {
     if (boss.anime !== anime) return false;
+    if (type === 'secret') return Boolean(boss.is_secret);
     if (type === 'normal') return !boss.is_event && !boss.is_super;
     if (type === 'event') return boss.is_event && !boss.is_super;
-    if (type === 'super') return boss.is_super;
+    if (type === 'super') return boss.is_super && !boss.is_secret;
     return false;
   });
 }
