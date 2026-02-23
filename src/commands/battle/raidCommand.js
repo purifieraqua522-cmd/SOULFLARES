@@ -1,6 +1,22 @@
-const { SlashCommandBuilder } = require('discord.js');
+const path = require('path');
+const fs = require('fs');
+const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const { replyError, replySuccess } = require('../../ui/responders');
 const { raidPresets } = require('../../data/constants');
+
+function resolveRaidImagePath(anime, raidKey) {
+  const root = path.resolve(process.cwd(), 'assets/backgrounds/raid');
+  const candidates = [
+    path.join(root, `${raidKey}.png`),
+    path.join(root, `${anime}_${raidKey}.png`),
+    path.join(root, `${anime}.png`),
+    path.join(root, 'default.png')
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
 
 const data = new SlashCommandBuilder()
   .setName('raid')
@@ -39,14 +55,22 @@ async function execute(interaction, ctx) {
       const anime = interaction.options.getString('anime', true);
       const raidKey = interaction.options.getString('raid_key', true);
       const { raid, preset } = await ctx.raidService.startRaid(userId, anime, raidKey);
-      return replySuccess(interaction, 'Raid Created', [
+      const lines = [
         `Raid ID: \`${raid.id}\``,
         `Anime: **${raid.anime.toUpperCase()}**`,
         `Raid: **${preset.label}**`,
         `Fixed Power: **${preset.fixedPower}**`,
         `Stages: **${preset.stages.join(' -> ')}**`,
         `Status: **${raid.state}**`
-      ]);
+      ];
+
+      const raidImagePath = resolveRaidImagePath(anime, raidKey);
+      if (!raidImagePath) {
+        return replySuccess(interaction, 'Raid Created', lines);
+      }
+
+      const file = new AttachmentBuilder(raidImagePath, { name: `${raidKey}.png` });
+      return interaction.reply({ content: lines.join('\n'), files: [file] });
     }
 
     if (sub === 'join') {

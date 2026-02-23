@@ -55,8 +55,8 @@ const raidPresets = {
     key: 'onepiece_admiral_fleet',
     anime: 'onepiece',
     label: 'Admiral Fleet Raid',
-    fixedPower: 10400,
-    stages: ['akainu', 'kizaru', 'aokiji', 'fujitora', 'ryokugyu']
+    fixedPower: 11800,
+    stages: ['garp', 'akainu', 'aokiji', 'sengoku', 'kizaru', 'fujitora']
   },
   onepiece_kaido: {
     key: 'onepiece_kaido',
@@ -69,8 +69,8 @@ const raidPresets = {
     key: 'jjk_shibuya_train',
     anime: 'jjk',
     label: 'Shibuya Train Incident Raid',
-    fixedPower: 11500,
-    stages: ['jogo', 'mahito', 'hanami', 'choso', 'kenjaku']
+    fixedPower: 12200,
+    stages: ['kenjaku', 'hanami', 'dragon', 'choso', 'mahito', 'jogo']
   }
 };
 
