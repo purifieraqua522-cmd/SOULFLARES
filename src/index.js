@@ -9,6 +9,7 @@ const { createDb } = require('./core/db');
 const { createRepositories } = require('./data/repositories');
 const { commandModules, commandMap } = require('./commands');
 const { startBossSchedulers } = require('./jobs/bossScheduler');
+const { startRaidSchedulers } = require('./jobs/raidScheduler');
 const { createSummonService } = require('./services/summonService');
 const { createCardService } = require('./services/cardService');
 const { createBossService } = require('./services/bossService');
@@ -22,6 +23,8 @@ const pngService = require('./services/pngService');
 const { replyError } = require('./ui/responders');
 const { buildOwnerSet } = require('./core/owners');
 const { buildBossSpawnPayload } = require('./ui/bossAnnouncement');
+const { buildRaidPayload } = require('./ui/raidAnnouncement');
+const { generateRaidLobbyPng } = require('./services/raidRenderService');
 
 function normalizeText(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -127,6 +130,7 @@ async function main() {
   client.once(Events.ClientReady, (readyClient) => {
     logInfo(`SOULFALRES logged in as ${readyClient.user.tag}`);
     startBossSchedulers({ bossService, client: readyClient, env });
+    startRaidSchedulers({ raidService, client: readyClient, env });
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
@@ -142,6 +146,63 @@ async function main() {
           } catch (err) {
             await interaction.followUp({ content: `Could not join boss: ${err.message}`, ephemeral: true });
           }
+          return;
+        }
+
+        if (cid.startsWith('raid_')) {
+          const [action, raidId] = cid.split(':');
+          if (!raidId) return;
+          await interaction.deferUpdate();
+
+          const computePartyPower = async (userId) => {
+            const party = await getTopPartyCards(ctx.repos, userId, 5);
+            return party.reduce((sum, x) => sum + x.power, 0);
+          };
+
+          let snapshot = null;
+          let headline = '';
+          let statusText = '';
+          let disableButtons = false;
+
+          if (action === 'raid_team_create') {
+            snapshot = await ctx.raidService.createTeam(interaction.user.id, raidId);
+            headline = `🛡 Team created by <@${interaction.user.id}>`;
+            statusText = `Raid: ${snapshot.preset.label}`;
+          } else if (action === 'raid_team_join') {
+            snapshot = await ctx.raidService.joinTeam(interaction.user.id, raidId);
+            headline = `🛡 <@${interaction.user.id}> joined the team`;
+            statusText = `Members: ${snapshot.state.users.length}/6`;
+          } else if (action === 'raid_attack') {
+            const result = await ctx.raidService.attackRaid(interaction.user.id, raidId, computePartyPower);
+            snapshot = result;
+            headline = `⚔️ <@${interaction.user.id}> attacked for ${result.damage}`;
+            statusText = result.raidCleared
+              ? `RAID CLEARED! Rewards sent.`
+              : `Boss: ${result.currentBossKey} | Stage ${result.currentStage}/${result.totalStages} | HP ${result.state.hp_current}/${result.state.hp_max}`;
+            disableButtons = Boolean(result.raidCleared);
+          } else if (action === 'raid_status') {
+            snapshot = await ctx.raidService.getRaidSnapshot(raidId);
+            headline = `🧭 Raid Status`;
+            statusText = `Boss: ${snapshot.state.boss_key} | Stage ${snapshot.state.stage_index + 1}/${snapshot.preset.stages.length} | HP ${snapshot.state.hp_current}/${snapshot.state.hp_max}`;
+          } else {
+            return;
+          }
+
+          const raidPng = await generateRaidLobbyPng({
+            raidKey: snapshot.raidKey,
+            preset: snapshot.preset,
+            state: snapshot.state,
+            fontFamily: ctx.bossFontFamily || ctx.primaryFontFamily
+          }).catch(() => null);
+
+          const payload = buildRaidPayload({
+            raid: snapshot.raid,
+            raidPng,
+            title: headline,
+            statusText,
+            disabled: disableButtons
+          });
+          await interaction.message.edit(payload);
           return;
         }
       } catch {

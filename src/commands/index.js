@@ -2,7 +2,6 @@
 const summonCommand = require('./card/summonCommand');
 
 const bossCommand = require('./battle/bossCommand');
-const raidCommand = require('./battle/raidCommand');
 const fightCommand = require('./battle/fightCommand');
 const clashCommand = require('./battle/clashCommand');
 
@@ -22,7 +21,6 @@ const commandModules = [
   cardCommand,
   summonCommand,
   bossCommand,
-  raidCommand,
   fightCommand,
   clashCommand,
   inventoryCommand,
