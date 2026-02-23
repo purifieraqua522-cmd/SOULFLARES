@@ -32,6 +32,13 @@
         await repos.addCurrency(userId, item.payload.currency, amount);
         effect = `Currency +${amount} (${item.payload.currency})`;
       }
+      if (item.item_type === 'card') {
+        const cardKey = item.payload.card_key;
+        const qty = Math.max(1, Number(item.payload.copies || 1));
+        if (!cardKey) throw new Error('Invalid card payload in store item.');
+        await repos.upsertUserCard(userId, cardKey, { copies: qty });
+        effect = `Card +${qty} (${cardKey})`;
+      }
 
       const wallet = await repos.getWallet(userId);
       return { item, effect, wallet };

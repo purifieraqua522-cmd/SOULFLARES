@@ -106,22 +106,29 @@ async function execute(interaction, ctx) {
         });
 
         const file = new AttachmentBuilder(battlePng, { name: `boss_fight_${result.updated.id}.png` });
+        const myDrop = (result.drops || []).find((x) => x.userId === userId);
+        const dropLine = myDrop
+          ? `Rewards: **+${myDrop.payout} ${myDrop.currency}**${myDrop.cardName ? ` | Card Drop: **${myDrop.cardName}**` : ''}`
+          : '';
         return interaction.editReply({
           content: [
             `Boss: **${bossMeta?.display_name || result.updated.boss_key}**`,
             `Damage: **${result.damage}**`,
             `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
-            `Status: **${result.updated.state}**`
-          ].join('\n'),
+            `Status: **${result.updated.state}**`,
+            dropLine
+          ].filter(Boolean).join('\n'),
           files: [file]
         });
       } catch {
+        const myDrop = (result.drops || []).find((x) => x.userId === userId);
         return replySuccess(interaction, 'Boss Attack', [
           `Damage: **${result.damage}**`,
           `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
           `Status: **${result.updated.state}**`,
+          myDrop ? `Rewards: **+${myDrop.payout} ${myDrop.currency}**${myDrop.cardName ? ` | Card: ${myDrop.cardName}` : ''}` : null,
           'PNG rendering fallback used.'
-        ]);
+        ].filter(Boolean));
       }
     }
   } catch (error) {

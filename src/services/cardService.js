@@ -3,28 +3,7 @@
 function createCardService(repos) {
   return {
     async evolve(userId, cardKey) {
-      const userCard = await repos.getUserCard(userId, cardKey);
-      if (!userCard) throw new Error('You do not own this card');
-
-      const card = await repos.getCardByKey(cardKey);
-      if (!card || !Array.isArray(card.evolution_line) || !card.evolution_line.length) {
-        throw new Error('Card has no evolution line');
-      }
-      if (card.evolution_tier >= maxTier) throw new Error('Card already at max evolution');
-
-      const animeCfg = await repos.getAnimeConfig(card.anime);
-      if (!animeCfg) throw new Error('Anime config missing');
-
-      const nextKey = card.evolution_line[card.evolution_tier];
-      const nextCard = await repos.getCardByKey(nextKey);
-      if (!nextCard) throw new Error('Next evolution missing');
-
-      await repos.spendCurrency(userId, animeCfg.currency, 250);
-      await repos.consumeMaterial(userId, animeCfg.evolve_material_key, 2);
-      await repos.removeUserCardCopy(userId, card.key, 1);
-      await repos.upsertUserCard(userId, nextCard.key, { copies: 1 });
-
-      return { from: card, to: nextCard, currency: animeCfg.currency };
+      throw new Error('Evolution is disabled. Cards are obtained from boss drops or store.');
     },
 
     async merge(userId, cardKey) {

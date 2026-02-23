@@ -77,13 +77,7 @@ async function execute(interaction, ctx) {
     }
 
     if (sub === 'evolve') {
-      const cardKey = interaction.options.getString('card_key', true);
-      const result = await ctx.cardService.evolve(userId, cardKey);
-      return replySuccess(interaction, 'Evolution Complete', [
-        `From: **${result.from.display_name}**`,
-        `To: **${result.to.display_name}**`,
-        `Currency Used: **${result.currency}**`
-      ]);
+      return replyError(interaction, 'Evolution is disabled. Get stronger cards from boss drops and store cards.');
     }
 
     if (sub === 'merge') {

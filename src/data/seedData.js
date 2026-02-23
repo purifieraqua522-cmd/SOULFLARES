@@ -95,7 +95,17 @@ const storeItems = [
   { item_key: 'bleach_core_pack', anime: 'bleach', item_type: 'material', display_name: 'Reishi Core Pack', price_currency: 'reiryoku', price_amount: 320, payload: { material_key: 'bl_evo_core', qty: 2 } },
   { item_key: 'jjk_relic_pack', anime: 'jjk', item_type: 'material', display_name: 'JJK Relic Pack', price_currency: 'cursed_energy', price_amount: 320, payload: { material_key: 'jjk_evo_relic', qty: 2 } },
   { item_key: 'jjk_demon_finger', anime: 'jjk', item_type: 'material', display_name: 'Demon Finger (Event)', price_currency: 'cursed_energy', price_amount: 2200, payload: { material_key: 'demon_finger', qty: 1 } },
-  { item_key: 'event_shadow_shard', anime: 'global', item_type: 'material', display_name: 'Shadow Shard', price_currency: 'berries', price_amount: 1600, payload: { material_key: 'event_shadow_shard', qty: 1 } }
+  { item_key: 'event_shadow_shard', anime: 'global', item_type: 'material', display_name: 'Shadow Shard', price_currency: 'berries', price_amount: 1600, payload: { material_key: 'event_shadow_shard', qty: 1 } },
+
+  // Card section (buy cards directly)
+  { item_key: 'op_card_mihawk', anime: 'onepiece', item_type: 'card', display_name: 'Mihawk Card', price_currency: 'berries', price_amount: 1250, payload: { card_key: 'mihawk', copies: 1 } },
+  { item_key: 'op_card_shanks', anime: 'onepiece', item_type: 'card', display_name: 'Shanks Card', price_currency: 'berries', price_amount: 3600, payload: { card_key: 'shanks', copies: 1 } },
+  { item_key: 'na_card_itachi', anime: 'naruto', item_type: 'card', display_name: 'Itachi Card', price_currency: 'chakra', price_amount: 1250, payload: { card_key: 'itachi', copies: 1 } },
+  { item_key: 'na_card_obito', anime: 'naruto', item_type: 'card', display_name: 'Obito Card', price_currency: 'chakra', price_amount: 3600, payload: { card_key: 'obito', copies: 1 } },
+  { item_key: 'bl_card_ulquiorra', anime: 'bleach', item_type: 'card', display_name: 'Ulquiorra Card', price_currency: 'reiryoku', price_amount: 1250, payload: { card_key: 'ulquiorra', copies: 1 } },
+  { item_key: 'bl_card_ichigo', anime: 'bleach', item_type: 'card', display_name: 'Ichigo Card', price_currency: 'reiryoku', price_amount: 3600, payload: { card_key: 'ichigo', copies: 1 } },
+  { item_key: 'jjk_card_hakari', anime: 'jjk', item_type: 'card', display_name: 'Hakari Card', price_currency: 'cursed_energy', price_amount: 1250, payload: { card_key: 'hakari', copies: 1 } },
+  { item_key: 'jjk_card_sukuna', anime: 'jjk', item_type: 'card', display_name: 'Sukuna Card', price_currency: 'cursed_energy', price_amount: 3600, payload: { card_key: 'sukuna', copies: 1 } }
 ];
 
 module.exports = { cards, materials, bosses, fusions, storeItems };

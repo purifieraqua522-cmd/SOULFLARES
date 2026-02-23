@@ -348,6 +348,89 @@ function createBossRenderService() {
       return canvas.toBuffer('image/png');
     },
 
+    async generateBossPartyFightPng(payload) {
+      const {
+        bossName,
+        bossKey,
+        anime,
+        difficulty,
+        hpCurrent,
+        hpMax,
+        attackerTag,
+        totalDamage,
+        defeated,
+        cardEntries = [],
+        fontFamily = 'sans-serif'
+      } = payload;
+
+      const width = 1400;
+      const height = 860;
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+      const accent = difficultyColor(difficulty || 'easy');
+
+      const backgroundPath = resolveBossBackground({ anime, bossKey, difficulty: difficulty || 'easy', defeated });
+      await drawBackground(ctx, width, height, backgroundPath);
+      drawOverlay(ctx, width, height);
+
+      drawGlassPanel(ctx, 40, 30, 1320, 170);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `700 54px ${fontFamily}, sans-serif`;
+      ctx.fillText(bossName, 70, 98);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = `500 24px ${fontFamily}, sans-serif`;
+      ctx.fillText(`Boss: ${bossKey} | ${String(anime).toUpperCase()}`, 70, 138);
+      drawHpBar(ctx, 70, 154, 1260, 24, hpCurrent, hpMax, accent);
+
+      drawGlassPanel(ctx, 40, 230, 1320, 530);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = `700 34px ${fontFamily}, sans-serif`;
+      ctx.fillText('Auto Team Attack (5 Cards)', 70, 286);
+
+      const slots = cardEntries.slice(0, 5);
+      const cardW = 230;
+      const cardH = 320;
+      const gap = 20;
+      const totalW = slots.length * cardW + Math.max(0, slots.length - 1) * gap;
+      const startX = Math.floor((width - totalW) / 2);
+      const topY = 320;
+
+      for (let i = 0; i < slots.length; i++) {
+        const c = slots[i];
+        const x = startX + i * (cardW + gap);
+        ctx.fillStyle = 'rgba(15,23,42,0.82)';
+        ctx.fillRect(x, topY, cardW, cardH);
+        ctx.strokeStyle = 'rgba(148,163,184,0.7)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, topY, cardW, cardH);
+
+        try {
+          if (c.imagePath) {
+            const img = await loadImage(c.imagePath);
+            ctx.drawImage(img, x + 8, topY + 8, cardW - 16, 220);
+          }
+        } catch {
+          // Ignore missing art.
+        }
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `600 18px ${fontFamily}, sans-serif`;
+        ctx.fillText(String(c.name || c.key || 'Card').slice(0, 20), x + 10, topY + 246);
+        ctx.fillStyle = '#93c5fd';
+        ctx.font = `600 16px ${fontFamily}, sans-serif`;
+        ctx.fillText(`Power ${c.power || 0}`, x + 10, topY + 276);
+      }
+
+      ctx.fillStyle = '#fb7185';
+      ctx.font = `800 56px ${fontFamily}, sans-serif`;
+      ctx.fillText(`-${totalDamage}`, 70, 804);
+      ctx.fillStyle = defeated ? '#22c55e' : '#38bdf8';
+      ctx.font = `700 30px ${fontFamily}, sans-serif`;
+      ctx.fillText(defeated ? `Finisher by ${attackerTag}` : `Attacker: ${attackerTag}`, 260, 804);
+
+      return canvas.toBuffer('image/png');
+    },
+
     async generateBossFightPng(payload) {
       const {
         bossName,

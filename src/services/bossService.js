@@ -1,9 +1,36 @@
-﻿const { animes } = require('../data/constants');
+const { animes } = require('../data/constants');
 
 function calcDifficultyMod(difficulty) {
   if (difficulty === 'nightmare') return 2.1;
   if (difficulty === 'hard') return 1.45;
   return 1.0;
+}
+
+function randomPick(list) {
+  if (!list.length) return null;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function rollDropChance(bossMeta) {
+  if (bossMeta?.is_secret) return 0.65;
+  if (bossMeta?.is_super) return 0.35;
+  return 0.18;
+}
+
+function rarityWeightsForBoss(bossMeta) {
+  if (bossMeta?.is_secret) return { secret: 0.12, mythical: 0.33, legendary: 0.35, epic: 0.2 };
+  if (bossMeta?.is_super) return { secret: 0.03, mythical: 0.18, legendary: 0.34, epic: 0.45 };
+  return { secret: 0.005, mythical: 0.06, legendary: 0.23, epic: 0.705 };
+}
+
+function weightedRarity(weights) {
+  const roll = Math.random();
+  let acc = 0;
+  for (const [rarity, weight] of Object.entries(weights)) {
+    acc += weight;
+    if (roll <= acc) return rarity;
+  }
+  return 'epic';
 }
 
 function createBossService(repos, bossRenderService) {
@@ -20,7 +47,6 @@ function createBossService(repos, bossRenderService) {
       participants: []
     });
 
-    // Generate spawn PNG
     let spawnPng = null;
     if (bossRenderService) {
       try {
@@ -44,7 +70,8 @@ function createBossService(repos, bossRenderService) {
       anime: boss.anime,
       display_name: boss.display_name,
       is_super: boss.is_super || false,
-      is_event: boss.is_event || false
+      is_event: boss.is_event || false,
+      is_secret: boss.is_secret || false
     };
 
     return { activeBoss: enrichedBoss, spawnPng };
@@ -54,11 +81,28 @@ function createBossService(repos, bossRenderService) {
     async spawnScheduledBoss({ anime, isSuper = false }) {
       const info = animes[anime];
       if (!info) throw new Error('Invalid anime');
-      const options = isSuper
-        ? (Array.isArray(info.superBosses) && info.superBosses.length ? info.superBosses : [info.superBoss].filter(Boolean))
-        : info.bosses;
-      const bossKey = options[Math.floor(Math.random() * options.length)];
-      const boss = await repos.getBossByKey(bossKey);
+
+      const catalog = (await repos.getAllBosses()).filter((b) => b.anime === anime);
+      if (!catalog.length) throw new Error('No bosses found for anime');
+
+      const normals = catalog.filter((b) => !b.is_super && !b.is_secret);
+      const supers = catalog.filter((b) => b.is_super && !b.is_secret);
+      const secrets = catalog.filter((b) => b.is_secret);
+
+      let boss = null;
+      if (isSuper) {
+        boss = randomPick([...supers, ...secrets]) || randomPick(catalog);
+      } else {
+        const roll = Math.random();
+        if (secrets.length && roll < 0.03) {
+          boss = randomPick(secrets);
+        } else if (supers.length && roll < 0.27) {
+          boss = randomPick(supers);
+        } else {
+          boss = randomPick(normals) || randomPick(catalog);
+        }
+      }
+
       if (!boss) throw new Error('Boss missing in DB');
       return spawnBossFromRow(boss);
     },
@@ -102,16 +146,47 @@ function createBossService(repos, bossRenderService) {
       let state = boss.state;
       if (hp === 0) state = 'defeated';
 
-      const participants = Array.isArray(boss.participants) ? boss.participants : [];
+      const participants = Array.isArray(boss.participants) ? boss.participants.slice() : [];
       if (!participants.includes(userId)) participants.push(userId);
 
       const updated = await repos.updateBoss(boss.id, { hp_current: hp, participants, state });
-      return { updated, damage, defeated: hp === 0 };
-    }
-,
+
+      const drops = [];
+      if (hp === 0 && boss.state !== 'defeated') {
+        const bossMeta = await repos.getBossByKey(boss.boss_key);
+        const animeCfg = await repos.getAnimeConfig(bossMeta?.anime || '');
+        const currency = animeCfg?.currency || animes[bossMeta?.anime || 'onepiece']?.currency || 'berries';
+        const cardPool = await repos.getCardsByAnime(bossMeta?.anime || '');
+        const eligibleCards = cardPool.filter((c) => ['epic', 'legendary', 'mythical', 'secret'].includes(c.rarity));
+        const weights = rarityWeightsForBoss(bossMeta);
+
+        for (const pid of participants) {
+          const baseCurrency = bossMeta?.is_secret ? 1300 : bossMeta?.is_super ? 800 : 420;
+          const payout = Math.floor(baseCurrency * (0.9 + Math.random() * 0.3));
+          await repos.addCurrency(pid, currency, payout);
+
+          let cardDrop = null;
+          if (Math.random() < rollDropChance(bossMeta) && eligibleCards.length) {
+            const rarity = weightedRarity(weights);
+            const rarityPool = eligibleCards.filter((c) => c.rarity === rarity);
+            cardDrop = randomPick(rarityPool.length ? rarityPool : eligibleCards);
+            if (cardDrop) await repos.upsertUserCard(pid, cardDrop.key, { copies: 1 });
+          }
+
+          drops.push({
+            userId: pid,
+            currency,
+            payout,
+            cardKey: cardDrop?.key || null,
+            cardName: cardDrop?.display_name || null
+          });
+        }
+      }
+
+      return { updated, damage, defeated: hp === 0, drops };
+    },
 
     async joinActiveBoss(userId, bossId) {
-      // fetch boss
       const boss = await repos.getActiveBossById(bossId);
       if (!boss) throw new Error('Boss not found');
       if (boss.state !== 'open' && boss.state !== 'active') throw new Error('Boss not joinable');
@@ -126,10 +201,10 @@ function createBossService(repos, bossRenderService) {
         anime: bossMeta?.anime || boss.anime,
         display_name: bossMeta?.display_name || boss.display_name || boss.boss_key,
         is_super: Boolean(bossMeta?.is_super),
-        is_event: Boolean(bossMeta?.is_event)
+        is_event: Boolean(bossMeta?.is_event),
+        is_secret: Boolean(bossMeta?.is_secret)
       };
 
-      // regenerate spawn PNG if render service available
       let spawnPng = null;
       if (bossRenderService) {
         try {
@@ -141,7 +216,7 @@ function createBossService(repos, bossRenderService) {
             hpMax: enrichedBoss.hp_max || enrichedBoss.hp_current,
             isSuper: enrichedBoss.is_super || false,
             isEvent: enrichedBoss.is_event || false,
-            participants: participants
+            participants
           });
         } catch (err) {
           console.warn('Failed to regenerate spawn PNG on join:', err.message);

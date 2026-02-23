@@ -1,15 +1,7 @@
-﻿const dotenv = require('dotenv');
+const dotenv = require('dotenv');
 dotenv.config();
 
-const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  Events,
-  REST,
-  Routes,
-  AttachmentBuilder
-} = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Events, REST, Routes, AttachmentBuilder } = require('discord.js');
 
 const { loadEnv } = require('./core/env');
 const { logInfo, logError, logWarn } = require('./core/logger');
@@ -25,15 +17,14 @@ const { createStoreService } = require('./services/storeService');
 const { createAssetsService } = require('./services/assetsService');
 const { createBossRenderService } = require('./services/bossRenderService');
 const { registerFonts } = require('./core/fonts');
+const { calcCardPower } = require('./services/progressionService');
 const pngService = require('./services/pngService');
 const { replyError } = require('./ui/responders');
 const { buildOwnerSet } = require('./core/owners');
 const { buildBossSpawnPayload } = require('./ui/bossAnnouncement');
 
 function normalizeText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
 async function findOwnedCardByQuery(repos, userId, query) {
@@ -47,20 +38,33 @@ async function findOwnedCardByQuery(repos, userId, query) {
     owned.map(async (userCard) => {
       const card = await repos.getCardByKey(userCard.card_key);
       if (!card) return null;
-      const keyNorm = normalizeText(card.key);
-      const nameNorm = normalizeText(card.display_name);
-      return { userCard, card, keyNorm, nameNorm };
+      return {
+        userCard,
+        card,
+        keyNorm: normalizeText(card.key),
+        nameNorm: normalizeText(card.display_name)
+      };
     })
   );
 
   const valid = candidates.filter(Boolean);
-  const exact = valid.find((x) => x.keyNorm === needle || x.nameNorm === needle);
-  if (exact) return exact;
+  return (
+    valid.find((x) => x.keyNorm === needle || x.nameNorm === needle) ||
+    valid.find((x) => x.keyNorm.includes(needle) || x.nameNorm.includes(needle)) ||
+    null
+  );
+}
 
-  const partial = valid.find((x) => x.keyNorm.includes(needle) || x.nameNorm.includes(needle));
-  if (partial) return partial;
-
-  return null;
+async function getTopPartyCards(repos, userId, limit = 5) {
+  const owned = await repos.getUserCards(userId);
+  const rows = await Promise.all(
+    owned.map(async (u) => {
+      const card = await repos.getCardByKey(u.card_key);
+      if (!card) return null;
+      return { userCard: u, card, power: calcCardPower(card, u) };
+    })
+  );
+  return rows.filter(Boolean).sort((a, b) => b.power - a.power).slice(0, limit);
 }
 
 async function deployCommands(env) {
@@ -68,9 +72,7 @@ async function deployCommands(env) {
   const payload = commandModules.map((mod) => mod.data.toJSON());
 
   if (env.DISCORD_GUILD_ID) {
-    await rest.put(Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, env.DISCORD_GUILD_ID), {
-      body: payload
-    });
+    await rest.put(Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, env.DISCORD_GUILD_ID), { body: payload });
     logInfo('Guild commands deployed', { guild: env.DISCORD_GUILD_ID });
   } else {
     await rest.put(Routes.applicationCommands(env.DISCORD_CLIENT_ID), { body: payload });
@@ -124,11 +126,10 @@ async function main() {
 
   client.once(Events.ClientReady, (readyClient) => {
     logInfo(`SOULFALRES logged in as ${readyClient.user.tag}`);
-    startBossSchedulers({ bossService, client: readyClient, env, repos, bossRenderService });
+    startBossSchedulers({ bossService, client: readyClient, env });
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
-    // Handle Join button clicks for boss spawns
     if (interaction.isButton()) {
       try {
         const cid = interaction.customId || '';
@@ -137,17 +138,17 @@ async function main() {
           await interaction.deferUpdate();
           try {
             const res = await ctx.bossService.joinActiveBoss(interaction.user.id, bossId);
-            const payload = buildBossSpawnPayload(res.updated, res.spawnPng);
-            await interaction.message.edit(payload);
+            await interaction.message.edit(buildBossSpawnPayload(res.updated, res.spawnPng));
           } catch (err) {
             await interaction.followUp({ content: `Could not join boss: ${err.message}`, ephemeral: true });
           }
           return;
         }
-      } catch (err) {
-        // swallow
+      } catch {
+        // Ignore button errors.
       }
     }
+
     if (interaction.isAutocomplete()) {
       const module = commandMap.get(interaction.commandName);
       if (!module?.autocomplete) return;
@@ -166,21 +167,17 @@ async function main() {
     if (!interaction.isChatInputCommand()) return;
 
     const module = commandMap.get(interaction.commandName);
-    if (!module) {
-      return replyError(interaction, 'Unknown command');
-    }
+    if (!module) return replyError(interaction, 'Unknown command');
 
     try {
       await module.execute(interaction, ctx);
     } catch (error) {
       const code = Number(error?.code || 0);
-      const isAckError = code === 10062 || code === 40060;
-      if (isAckError) {
+      if (code === 10062 || code === 40060) {
         logWarn('Interaction already acknowledged', { command: interaction.commandName, code });
         return;
       }
       logError('Command execution failed', error);
-
       try {
         await replyError(interaction, 'Command failed unexpectedly.');
       } catch (replyErr) {
@@ -199,17 +196,11 @@ async function main() {
 
     const query = raw.slice('attack'.length).trim();
     if (!query) {
-      await message.reply('Use: `attack <your card name>`');
+      await message.reply('Use: `attack <your card name>` or `attack cards`');
       return;
     }
 
     try {
-      const match = await findOwnedCardByQuery(ctx.repos, message.author.id, query);
-      if (!match) {
-        await message.reply(`Card not found in your inventory: \`${query}\``);
-        return;
-      }
-
       const bosses = await ctx.repos.getVisibleBosses();
       if (!bosses.length) {
         await message.reply('No active bosses to attack right now.');
@@ -217,9 +208,74 @@ async function main() {
       }
 
       const chosen = bosses[0];
+
+      if (normalizeText(query) === 'cards') {
+        const party = await getTopPartyCards(ctx.repos, message.author.id, 5);
+        if (!party.length) {
+          await message.reply('You have no cards in inventory.');
+          return;
+        }
+
+        const totalPower = party.reduce((sum, p) => sum + p.power, 0);
+        const result = await ctx.bossService.attackBoss(message.author.id, chosen.id, totalPower);
+        const bossMeta = await ctx.repos.getBossByKey(result.updated.boss_key);
+        const myDrop = (result.drops || []).find((x) => x.userId === message.author.id);
+
+        const partyEntries = party.map((p) => ({
+          key: p.card.key,
+          name: p.card.display_name,
+          power: p.power,
+          imagePath: ctx.assetsService.getCardImagePath(p.card.key)
+        }));
+
+        try {
+          const battlePng = await ctx.bossRenderService.generateBossPartyFightPng({
+            bossName: bossMeta?.display_name || result.updated.boss_key,
+            bossKey: result.updated.boss_key,
+            anime: bossMeta?.anime || 'global',
+            difficulty: result.updated.difficulty || 'easy',
+            hpCurrent: result.updated.hp_current,
+            hpMax: result.updated.hp_max,
+            attackerTag: message.author.tag,
+            totalDamage: result.damage,
+            defeated: result.defeated,
+            cardEntries: partyEntries,
+            fontFamily: ctx.bossFontFamily || ctx.primaryFontFamily
+          });
+
+          const file = new AttachmentBuilder(battlePng, { name: `boss_party_${result.updated.id}.png` });
+          await message.reply({
+            content: [
+              `? **Auto Team Attack** with ${party.length} cards`,
+              `Damage: **${result.damage}**`,
+              `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+              myDrop ? `Rewards: **+${myDrop.payout} ${myDrop.currency}**${myDrop.cardName ? ` | Card: **${myDrop.cardName}**` : ''}` : null
+            ].filter(Boolean).join('\n'),
+            files: [file]
+          });
+        } catch {
+          await message.reply(
+            [
+              `? **Auto Team Attack** with ${party.length} cards`,
+              `Damage: **${result.damage}**`,
+              `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+              myDrop ? `Rewards: **+${myDrop.payout} ${myDrop.currency}**${myDrop.cardName ? ` | Card: **${myDrop.cardName}**` : ''}` : null
+            ].filter(Boolean).join('\n')
+          );
+        }
+        return;
+      }
+
+      const match = await findOwnedCardByQuery(ctx.repos, message.author.id, query);
+      if (!match) {
+        await message.reply(`Card not found in your inventory: \`${query}\``);
+        return;
+      }
+
       const power = Math.floor(match.card.base_power * (1 + match.userCard.ascension * 0.1) * (1 + match.userCard.card_level * 0.02));
       const result = await ctx.bossService.attackBoss(message.author.id, chosen.id, power);
       const bossMeta = await ctx.repos.getBossByKey(result.updated.boss_key);
+      const myDrop = (result.drops || []).find((x) => x.userId === message.author.id);
 
       try {
         const battlePng = await ctx.bossRenderService.generateBossFightPng({
@@ -238,12 +294,20 @@ async function main() {
 
         const file = new AttachmentBuilder(battlePng, { name: `boss_fight_${result.updated.id}.png` });
         await message.reply({
-          content: `**${match.card.display_name}** attacked **${bossMeta?.display_name || result.updated.boss_key}** for **${result.damage}** damage.\nHP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+          content: [
+            `**${match.card.display_name}** attacked **${bossMeta?.display_name || result.updated.boss_key}** for **${result.damage}** damage.`,
+            `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+            myDrop ? `Rewards: **+${myDrop.payout} ${myDrop.currency}**${myDrop.cardName ? ` | Card: **${myDrop.cardName}**` : ''}` : null
+          ].filter(Boolean).join('\n'),
           files: [file]
         });
       } catch {
         await message.reply(
-          `**${match.card.display_name}** attacked **${bossMeta?.display_name || result.updated.boss_key}** for **${result.damage}** damage.\nHP: **${result.updated.hp_current}/${result.updated.hp_max}**`
+          [
+            `**${match.card.display_name}** attacked **${bossMeta?.display_name || result.updated.boss_key}** for **${result.damage}** damage.`,
+            `HP: **${result.updated.hp_current}/${result.updated.hp_max}**`,
+            myDrop ? `Rewards: **+${myDrop.payout} ${myDrop.currency}**${myDrop.cardName ? ` | Card: **${myDrop.cardName}**` : ''}` : null
+          ].filter(Boolean).join('\n')
         );
       }
     } catch (err) {
