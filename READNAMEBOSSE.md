@@ -1,5 +1,7 @@
 # SOULFLARES Boss + Raid PNG Naming
 
+For the new 3-variant boss image system, use `READNAMEBOSS.md`.
+
 This file lists the exact PNG filenames the bot can auto-load.
 
 ## 1) Boss Backgrounds

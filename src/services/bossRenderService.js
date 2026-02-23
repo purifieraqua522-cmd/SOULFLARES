@@ -9,13 +9,31 @@ function findFirstExisting(paths) {
   return null;
 }
 
+function findRandomExisting(paths) {
+  const found = paths.filter((p) => p && fs.existsSync(p));
+  if (!found.length) return null;
+  return found[Math.floor(Math.random() * found.length)];
+}
+
 function resolveBossBackground({ anime, bossKey, difficulty, defeated }) {
   const root = path.resolve(process.cwd(), 'assets/backgrounds/boss');
   const suffix = defeated ? '_defeated' : '';
-  return findFirstExisting([
+  return findRandomExisting([
+    path.join(root, `${bossKey}_${difficulty}_1${suffix}.png`),
+    path.join(root, `${bossKey}_${difficulty}_2${suffix}.png`),
+    path.join(root, `${bossKey}_${difficulty}_3${suffix}.png`),
+    path.join(root, `${bossKey}_1${suffix}.png`),
+    path.join(root, `${bossKey}_2${suffix}.png`),
+    path.join(root, `${bossKey}_3${suffix}.png`),
     path.join(root, `${bossKey}_${difficulty}${suffix}.png`),
     path.join(root, `${bossKey}${suffix}.png`),
+    path.join(root, `${anime}_${difficulty}_1${suffix}.png`),
+    path.join(root, `${anime}_${difficulty}_2${suffix}.png`),
+    path.join(root, `${anime}_${difficulty}_3${suffix}.png`),
     path.join(root, `${anime}_${difficulty}${suffix}.png`),
+    path.join(root, `${anime}_1${suffix}.png`),
+    path.join(root, `${anime}_2${suffix}.png`),
+    path.join(root, `${anime}_3${suffix}.png`),
     path.join(root, `${anime}${suffix}.png`),
     path.join(root, `${difficulty}${suffix}.png`),
     path.join(root, `default${suffix}.png`),
@@ -28,12 +46,24 @@ function resolveBossBackground({ anime, bossKey, difficulty, defeated }) {
 
 function resolveBossCharacter({ bossKey, anime }) {
   const rootCandidates = [
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${bossKey}_1.png`),
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${bossKey}_2.png`),
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${bossKey}_3.png`),
     path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${bossKey}.png`),
+    path.resolve(process.cwd(), `assets/cards/${anime}/${bossKey}_1.png`),
+    path.resolve(process.cwd(), `assets/cards/${anime}/${bossKey}_2.png`),
+    path.resolve(process.cwd(), `assets/cards/${anime}/${bossKey}_3.png`),
     path.resolve(process.cwd(), `assets/cards/${anime}/${bossKey}.png`),
+    path.resolve(process.cwd(), `assets/cards/${bossKey}_1.png`),
+    path.resolve(process.cwd(), `assets/cards/${bossKey}_2.png`),
+    path.resolve(process.cwd(), `assets/cards/${bossKey}_3.png`),
     path.resolve(process.cwd(), `assets/cards/${bossKey}.png`),
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${anime}_${bossKey}_1.png`),
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${anime}_${bossKey}_2.png`),
+    path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${anime}_${bossKey}_3.png`),
     path.resolve(process.cwd(), `assets/backgrounds/boss/characters/${anime}_${bossKey}.png`)
   ];
-  return findFirstExisting(rootCandidates);
+  return findRandomExisting(rootCandidates);
 }
 
 function difficultyColor(difficulty) {
